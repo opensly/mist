@@ -1,0 +1,353 @@
+<div class="toolbar">
+  <div class="toolbar-group">
+    <select class="text-type-select" [value]="selectedTextType()" (change)="onTextTypeChange($event)"
+      title="Text Style">
+      <option value="p">Normal Text</option>
+      <option value="h1">Heading 1</option>
+      <option value="h2">Heading 2</option>
+      <option value="h3">Heading 3</option>
+      <option value="h4">Heading 4</option>
+      <option value="h5">Heading 5</option>
+      <option value="h6">Heading 6</option>
+    </select>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <button class="toolbar-button" [class.active]="boldActive()" (click)="onFormat('bold')" title="Bold (Ctrl+B)">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 2h4.5a2.8 2.8 0 0 1 0 5.6H4V2zm0 5.6h5a3.2 3.2 0 0 1 0 6.4H4V7.6z"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="toolbar-button" [class.active]="italicActive()" (click)="onFormat('italic')" title="Italic (Ctrl+I)">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <path d="M8 2h6v2h-2l-4 8h2v2H4v-2h2l4-8H8V2z" fill="currentColor" />
+      </svg>
+    </button>
+    <button class="toolbar-button" [class.active]="underlineActive()" (click)="onFormat('underline')"
+      title="Underline (Ctrl+U)">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <path d="M4 2v6c0 2.2 1.8 4 4 4s4-1.8 4-4V2h-2v6c0 1.1-.9 2-2 2s-2-.9-2-2V2H4zm0 12h8v2H4v-2z"
+          fill="currentColor" />
+      </svg>
+    </button>
+
+    <div class="format-dropdown-container">
+      <button class="toolbar-button dropdown-trigger" [class.active]="showFormatDropdown()"
+        (click)="onFormat('format-dropdown')" (mousedown)="$event.preventDefault()" title="More formatting">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M1 3.5L5 7.5L9 3.5" stroke="currentColor" stroke-width="1.5" fill="none" />
+        </svg>
+      </button>
+
+      @if (showFormatDropdown()) {
+      <div class="format-dropdown-menu">
+        <div class="format-dropdown-item" (click)="onFormatOption('strikethrough')"
+          (mousedown)="$event.preventDefault()">
+          <span class="format-item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M5 12h14M4 19.1c.8.6 1.7.9 2.6.9 3 0 5.4-2.2 5.4-5s-2.4-5-5.4-5M20 4.9c-.8-.6-1.7-.9-2.6-.9-3 0-5.4 2.2-5.4 5s2.4 5 5.4 5" />
+            </svg>
+          </span>
+          <span class="format-item-label">Strikethrough</span>
+          <span class="format-item-shortcut">⌘⇧S</span>
+        </div>
+        <div class="format-dropdown-item" (click)="onFormatOption('code')" (mousedown)="$event.preventDefault()">
+          <span class="format-item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 18l6-6-6-6M8 6l-6 6 6 6" />
+            </svg>
+          </span>
+          <span class="format-item-label">Code</span>
+          <span class="format-item-shortcut">⌘⇧M</span>
+        </div>
+        <div class="format-dropdown-item" (click)="onFormatOption('subscript')" (mousedown)="$event.preventDefault()">
+          <span class="format-item-icon">X<sub>1</sub></span>
+          <span class="format-item-label">Subscript</span>
+          <span class="format-item-shortcut">⌘⇧,</span>
+        </div>
+        <div class="format-dropdown-item" (click)="onFormatOption('superscript')" (mousedown)="$event.preventDefault()">
+          <span class="format-item-icon">X<sup>1</sup></span>
+          <span class="format-item-label">Superscript</span>
+          <span class="format-item-shortcut">⌘⇧.</span>
+        </div>
+        <div class="format-dropdown-divider"></div>
+        <div class="format-dropdown-item clear-format" (click)="onFormatOption('removeFormat')"
+          (mousedown)="$event.preventDefault()">
+          <span class="format-item-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M18.8 4H5.2c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h13.6c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM9.5 14.5L14.5 9.5M14.5 14.5L9.5 9.5" />
+            </svg>
+          </span>
+          <span class="format-item-label">Clear formatting</span>
+          <span class="format-item-shortcut">⌘\</span>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <div class="color-dropdown-container">
+      <button class="toolbar-button dropdown-trigger color-trigger" [class.active]="showTextColorDropdown()"
+        (click)="onFormat('text-color-dropdown')" (mousedown)="$event.preventDefault()" title="Text color">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 20h16M7 16l4.4-11h1.2L17 16M8 12h8" />
+        </svg>
+      </button>
+
+      @if (showTextColorDropdown()) {
+      <div class="color-dropdown-menu">
+        <div class="color-section">
+          <div class="color-section-title">Text color</div>
+          <div class="color-grid">
+            @for (row of textColors; track $index) {
+            <div class="color-row">
+              @for (color of row; track color) {
+              <div class="color-swatch" [style.backgroundColor]="color" [class.selected]="textColor() === color"
+                (click)="onColorSelect('text', color)" (mousedown)="$event.preventDefault()">
+                @if (textColor() === color) {
+                <svg width="12" height="12" viewBox="0 0 16 16" class="selected-check">
+                  <path d="M5 8l2 2 4-4" fill="none" stroke="white" stroke-width="2" />
+                </svg>
+                }
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </div>
+        <div class="color-dropdown-divider"></div>
+        <button class="remove-color-button" (click)="onRemoveTextColor()" (mousedown)="$event.preventDefault()">
+          Remove color
+        </button>
+      </div>
+      }
+    </div>
+
+    <div class="color-dropdown-container">
+      <button class="toolbar-button dropdown-trigger highlight-trigger" [class.active]="showHighlightColorDropdown()"
+        (click)="onFormat('highlight-color-dropdown')" (mousedown)="$event.preventDefault()" title="Highlight color">
+        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.779 17.779 4.36 19.918 6.5 13.5m4.279 4.279 8.364-8.643a3.027 3.027 0 0 0-2.14-5.165 3.03 3.03 0 0 0-2.14.886L6.5 13.5m4.279 4.279L6.499 13.5m2.14 2.14 6.213-6.504M12.75 7.04 17 11.28"/>
+        </svg>        
+      </button>
+
+      @if (showHighlightColorDropdown()) {
+      <div class="color-dropdown-menu">
+        <div class="color-section">
+          <div class="color-section-title">Highlight color</div>
+          <div class="highlight-row">
+            @for (h of highlightColors; track h.color) {
+            <div class="highlight-swatch" [style.backgroundColor]="h.color"
+              [class.selected]="highlightColor() === h.color" (click)="onColorSelect('highlight', h.color)"
+              (mousedown)="$event.preventDefault()" [title]="h.label">
+              <span class="highlight-swatch-text">A</span>
+            </div>
+            }
+          </div>
+        </div>
+        <div class="color-dropdown-divider"></div>
+        <button class="remove-color-button" (click)="onRemoveHighlightColor()" (mousedown)="$event.preventDefault()">
+          Remove highlight
+        </button>
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <button class="toolbar-button" (click)="onFormat('orderedList')" title="Numbered List">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <path d="M2 3h2v2H2V3zm0 4h2v2H2V7zm0 4h2v2H2v-2zM6 3h8v2H6V3zm0 4h8v2H6V7zm0 4h8v2H6v-2z"
+          fill="currentColor" />
+      </svg>
+    </button>
+    <button class="toolbar-button" (click)="onFormat('unorderedList')" title="Bullet List">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <circle cx="3" cy="4" r="1.5" fill="currentColor" />
+        <circle cx="3" cy="8" r="1.5" fill="currentColor" />
+        <circle cx="3" cy="12" r="1.5" fill="currentColor" />
+        <path d="M6 3h8v2H6V3zm0 4h8v2H6V7zm0 4h8v2H6v-2z" fill="currentColor" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <div class="alignment-dropdown-container">
+      <button class="toolbar-button dropdown-trigger" [class.active]="showAlignmentDropdown()"
+        (click)="onFormat('alignment-dropdown')" (mousedown)="$event.preventDefault()" title="Text alignment">
+        @if (alignment() === 'left') {
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <path d="M2 3h12v2H2V3zm0 4h8v2H2V7zm0 4h10v2H2v-2z" fill="currentColor" />
+        </svg>
+        } @else if (alignment() === 'center') {
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <path d="M2 3h12v2H2V3zm2 4h8v2H4V7zm1 4h6v2H5v-2z" fill="currentColor" />
+        </svg>
+        } @else if (alignment() === 'right') {
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <path d="M2 3h12v2H2V3zm4 4h8v2H6V7zm2 4h6v2H8v-2z" fill="currentColor" />
+        </svg>
+        }
+        <svg width="10" height="10" viewBox="0 0 10 10" class="dropdown-arrow">
+          <path d="M1 3.5L5 7.5L9 3.5" stroke="currentColor" stroke-width="1.5" fill="none" />
+        </svg>
+      </button>
+
+      @if (showAlignmentDropdown()) {
+      <div class="alignment-dropdown-menu">
+        <div class="alignment-dropdown-item" [class.selected]="alignment() === 'left'"
+          (click)="onFormatOption('alignLeft')" (mousedown)="$event.preventDefault()">
+          <span class="alignment-item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 3h12v2H2V3zm0 4h8v2H2V7zm0 4h10v2H2v-2z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="alignment-item-label">Align left</span>
+          <span class="alignment-item-shortcut">⌘⇧L</span>
+        </div>
+        <div class="alignment-dropdown-item" [class.selected]="alignment() === 'center'"
+          (click)="onFormatOption('alignCenter')" (mousedown)="$event.preventDefault()">
+          <span class="alignment-item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 3h12v2H2V3zm2 4h8v2H4V7zm1 4h6v2H5v-2z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="alignment-item-label">Align center</span>
+          <span class="alignment-item-shortcut">⌘⌥E</span>
+        </div>
+        <div class="alignment-dropdown-item" [class.selected]="alignment() === 'right'"
+          (click)="onFormatOption('alignRight')" (mousedown)="$event.preventDefault()">
+          <span class="alignment-item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 3h12v2H2V3zm4 4h8v2H6V7zm2 4h6v2H8v-2z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="alignment-item-label">Align right</span>
+          <span class="alignment-item-shortcut">⌘⌥T</span>
+        </div>
+      </div>
+      }
+    </div>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <button class="toolbar-button" (click)="onFormat('codeBlock')" title="Code Block">
+      <svg class="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m8 8-4 4 4 4m8 0 4-4-4-4m-2-3-4 14"/>
+      </svg>      
+    </button>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <button class="toolbar-button" (click)="onFormat('image')" title="Insert Image">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <rect x="2" y="3" width="12" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <circle cx="6" cy="7" r="1.5" fill="currentColor" />
+        <path d="M2 11l3-3 2 2 3-3 4 4v2H2v-2z" fill="currentColor" />
+      </svg>
+    </button>
+    <button class="toolbar-button" (click)="onFormat('table')" title="Insert Table">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <rect x="2" y="3" width="12" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path d="M2 7h12M8 3v10" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group dropdown-container">
+    <button class="toolbar-button toolbar-button-more" (click)="onFormat('more')" title="More options">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <circle cx="4" cy="8" r="1.5" fill="currentColor" />
+        <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+        <circle cx="12" cy="8" r="1.5" fill="currentColor" />
+      </svg>
+    </button>
+
+    @if (showPanelsDropdown()) {
+    <div class="panels-dropdown-menu">
+      <div class="panels-dropdown-item" (click)="onSelectPanel('info')" (mousedown)="$event.preventDefault()">
+        <div class="panel-icon-preview info-preview">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <circle cx="8" cy="8" r="7" fill="#0052cc" />
+            <path d="M7 7h2v5H7V7zm0-2h2v1H7V5z" fill="white" />
+          </svg>
+        </div>
+        <div class="panel-item-content">
+          <div class="panel-item-title">Info panel</div>
+          <div class="panel-item-subtitle">Highlight information in a colored panel</div>
+        </div>
+      </div>
+
+      <div class="panels-dropdown-item" (click)="onSelectPanel('note')" (mousedown)="$event.preventDefault()">
+        <div class="panel-icon-preview note-preview">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <rect x="3" y="2" width="10" height="12" rx="1" fill="#6554c0" />
+            <rect x="5" y="5" width="6" height="1" fill="white" />
+          </svg>
+        </div>
+        <div class="panel-item-content">
+          <div class="panel-item-title">Note panel</div>
+          <div class="panel-item-subtitle">Add a note in a colored panel</div>
+        </div>
+      </div>
+
+      <div class="panels-dropdown-item" (click)="onSelectPanel('error')" (mousedown)="$event.preventDefault()">
+        <div class="panel-icon-preview error-preview">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <circle cx="8" cy="8" r="7" fill="#de350b" />
+            <path d="M5 5l6 6M11 5l-6 6" stroke="white" stroke-width="2" />
+          </svg>
+        </div>
+        <div class="panel-item-content">
+          <div class="panel-item-title">Error panel</div>
+          <div class="panel-item-subtitle">Call out errors in a colored panel</div>
+        </div>
+      </div>
+
+      <div class="panels-dropdown-item" (click)="onSelectPanel('success')" (mousedown)="$event.preventDefault()">
+        <div class="panel-icon-preview success-preview">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <circle cx="8" cy="8" r="7" fill="#36b37e" />
+            <path d="M5 8l2 2 4-4" stroke="white" stroke-width="2" fill="none" />
+          </svg>
+        </div>
+        <div class="panel-item-content">
+          <div class="panel-item-title">Success panel</div>
+          <div class="panel-item-subtitle">Add tips in a colored panel</div>
+        </div>
+      </div>
+
+      <div class="panels-dropdown-item" (click)="onSelectPanel('warning')" (mousedown)="$event.preventDefault()">
+        <div class="panel-icon-preview warning-preview">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <path d="M8 2l7 12H1L8 2z" fill="#ffab00" />
+            <path d="M7 7h2v4H7V7zm0 5h2v1H7v-1z" fill="white" />
+          </svg>
+        </div>
+        <div class="panel-item-content">
+          <div class="panel-item-title">Warning panel</div>
+          <div class="panel-item-subtitle">Add a note of caution in a colored panel</div>
+        </div>
+      </div>
+    </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,28 @@
+{
+  "name": "mist-editor",
+  "version": "1.0.0",
+  "description": "A powerful block-based rich text editor for Angular applications, inspired by Atlassian Confluence",
+  "keywords": [
+    "rich-text-editor",
+    "wysiwyg",
+    "editor",
+    "contenteditable",
+    "block-editor"
+  ],
+  "author": "Lakshmikanth Vallampati",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opensly/mist-editor.git"
+  },
+  "homepage": "https://github.com/opensly/mist-editor#readme",
+  "peerDependencies": {
+    "@angular/common": "^21.1.0",
+    "@angular/core": "^21.1.0",
+    "@angular/platform-browser": "^21.1.0"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false
+}

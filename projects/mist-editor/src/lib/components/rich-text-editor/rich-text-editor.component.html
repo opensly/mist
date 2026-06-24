@@ -1,0 +1,42 @@
+<div class="mist-editor-wrapper">
+  <div
+    #editor
+    class="mist-editor-content"
+    contenteditable="true"
+    [attr.data-placeholder]="placeholder()"
+    (input)="onInput($event)"
+    (keydown)="onKeyDown($event)"
+  ></div>
+
+  @if (showCommandMenu()) {
+    <div
+      class="command-menu"
+      [style.top.px]="commandMenuPosition().top"
+      [style.left.px]="commandMenuPosition().left"
+    >
+      <div class="command-menu-header">Insert element</div>
+      <div class="command-menu-items">
+        @for (item of getFilteredCommands(); track item.id) {
+          <div class="command-menu-item" (click)="executeCommand(item)">
+            <span class="command-icon">{{ item.icon || '📄' }}</span>
+            <span class="command-label">{{ item.label }}</span>
+          </div>
+        }
+        @if (getFilteredCommands().length === 0) {
+          <div class="command-menu-empty">No matching elements</div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (selectedTable()) {
+    <mist-table-options
+      [style.top.px]="tableOptionsPosition().top"
+      [style.left.px]="tableOptionsPosition().left"
+      [tableElement]="selectedTable()!"
+      (tableAction)="onTableAction($event)"
+      (close)="selectedTable.set(null)"
+    >
+    </mist-table-options>
+  }
+</div>

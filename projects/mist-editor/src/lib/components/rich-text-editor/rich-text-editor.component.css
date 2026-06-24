@@ -1,0 +1,309 @@
+mist-rich-text-editor {
+  display: block;
+  width: 100%;
+}
+
+.mist-editor-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.mist-editor-wrapper .mist-editor-content {
+  min-height: 400px;
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.mist-editor-wrapper .mist-editor-content:empty:before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+  position: absolute;
+}
+
+.mist-editor-wrapper .mist-editor-content:focus {
+  outline: none;
+}
+
+/* Content styling */
+.mist-editor-wrapper .mist-editor-content h1 {
+  font-size: var(--font-size-title);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-lg) 0 0 0;
+  line-height: 1.2;
+}
+
+.mist-editor-wrapper .mist-editor-content h2 {
+  font-size: var(--font-size-xxxl);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-lg) 0 0 0;
+  line-height: 1.2;
+}
+
+.mist-editor-wrapper .mist-editor-content h3 {
+  font-size: var(--font-size-xxl);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-lg) 0 0 0;
+  line-height: 1.2;
+}
+
+.mist-editor-wrapper .mist-editor-content h4 {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-lg) 0 0 0;
+  line-height: 1.2;
+}
+
+.mist-editor-wrapper .mist-editor-content h5 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-lg) 0 0 0;
+  line-height: 1.2;
+}
+
+.mist-editor-wrapper .mist-editor-content h6 {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--spacing-lg) 0 0 0;
+  line-height: 1.2;
+}
+
+.mist-editor-wrapper .mist-editor-content p {
+  font-size: var(--font-size-lg);
+  margin: var(--spacing-lg) 0 0 0;
+}
+
+.mist-editor-wrapper .mist-editor-content ul,
+.mist-editor-wrapper .mist-editor-content ol {
+  margin: var(--spacing-lg) 0;
+  padding-left: var(--spacing-xxl);
+}
+
+.mist-editor-wrapper .mist-editor-content li {
+  margin: var(--spacing-xs) 0;
+}
+
+.mist-editor-wrapper .mist-editor-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: var(--spacing-md) 0;
+}
+
+.mist-editor-wrapper .mist-editor-content table td,
+.mist-editor-wrapper .mist-editor-content table th {
+  border: 1px solid var(--color-border);
+  padding: var(--spacing-sm);
+}
+
+.mist-editor-wrapper .mist-editor-content img {
+  max-width: 100%;
+  height: auto;
+  margin: var(--spacing-md) 0;
+}
+
+.mist-editor-wrapper .mist-editor-content .mention {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--border-radius-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.mist-editor-wrapper .mist-editor-content code {
+  background-color: #f4f5f7;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: var(--font-family-monospace);
+  font-size: 0.9em;
+}
+
+.mist-editor-wrapper .mist-editor-content pre {
+  background-color: #f4f5f7;
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-family: var(--font-family-monospace);
+  font-size: 14px;
+  line-height: 1.5;
+  color: #172b4d;
+  position: relative;
+}
+
+.mist-editor-wrapper .mist-editor-content pre::after {
+  content: 'Press Enter twice or ↓ at end to exit';
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  font-size: 11px;
+  color: #6b778c;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  font-family: var(--font-family-sans);
+}
+
+.mist-editor-wrapper .mist-editor-content pre:focus::after {
+  opacity: 0.6;
+}
+
+.mist-editor-wrapper .mist-editor-content pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  display: block;
+}
+
+.mist-editor-wrapper .mist-editor-content pre:focus {
+  outline: 2px solid #4c9aff;
+  outline-offset: 2px;
+}
+
+/* Command Menu */
+.mist-editor-wrapper .command-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 280px;
+  max-height: 400px;
+  overflow: hidden;
+  z-index: 1000;
+  animation: fadeIn var(--transition-fast);
+}
+
+.mist-editor-wrapper .command-menu-header {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-border);
+  background-color: var(--color-background-secondary);
+}
+
+.mist-editor-wrapper .command-menu-items {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.mist-editor-wrapper .command-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.mist-editor-wrapper .command-menu-item:hover {
+  background-color: var(--color-background-hover);
+}
+
+.mist-editor-wrapper .command-icon {
+  font-size: var(--font-size-lg);
+  width: 24px;
+  text-align: center;
+}
+
+.mist-editor-wrapper .command-label {
+  font-size: var(--font-size-md);
+  color: var(--color-text-primary);
+}
+
+.mist-editor-wrapper .command-menu-empty {
+  padding: 12px;
+  color: #6b778c;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Table Styles - Scoped to .mist-editor-wrapper */
+.mist-editor-wrapper .editor-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 20px 0;
+  table-layout: fixed;
+}
+
+.mist-editor-wrapper .editor-table td {
+  border: 1px solid #dfe1e6;
+  padding: 8px 12px;
+  min-height: 40px;
+  position: relative;
+  vertical-align: top;
+}
+
+.mist-editor-wrapper .editor-table td:hover {
+  background-color: #f4f5f7;
+}
+
+.mist-editor-wrapper .editor-table tr:first-child td {
+  background-color: #f4f5f7;
+  font-weight: 500;
+}
+
+/* Editor Panels - Scoped to .mist-editor-wrapper */
+.mist-editor-wrapper .editor-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border-radius: 6px;
+  font-family: var(--font-family-sans);
+}
+
+.mist-editor-wrapper .panel-icon-container {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mist-editor-wrapper .panel-icon-container svg {
+  display: block;
+}
+
+.mist-editor-wrapper .panel-content {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  outline: none;
+  min-height: 20px;
+}
+
+.mist-editor-wrapper .panel-text {
+  font-size: 14px;
+  color: #172b4d;
+  line-height: 1.5;
+  margin: 0 !important;
+}
+
+.mist-editor-wrapper .info-panel {
+  background-color: #e9f2ff;
+}
+
+.mist-editor-wrapper .note-panel {
+  background-color: #f4f5ff;
+}
+
+.mist-editor-wrapper .success-panel {
+  background-color: #e3fcef;
+}
+
+.mist-editor-wrapper .error-panel {
+  background-color: #ffebe6;
+}
+
+.mist-editor-wrapper .warning-panel {
+  background-color: #fff7e6;
+}

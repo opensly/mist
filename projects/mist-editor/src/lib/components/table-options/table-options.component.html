@@ -1,0 +1,185 @@
+<div class="table-options-toolbar">
+  <div class="toolbar-group">
+    <!-- Table options dropdown -->
+    <div class="dropdown-container">
+      <button class="toolbar-button" (click)="toggleTableDropdown()" title="Table options">
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <rect x="2" y="3" width="12" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" />
+          <path d="M2 7h12M8 3v10" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        <span>Table options</span>
+        <svg width="12" height="12" viewBox="0 0 12 12" class="dropdown-arrow">
+          <path d="M3 5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+      </button>
+
+      @if (showTableDropdown()) {
+      <div class="dropdown-menu">
+        <button class="dropdown-item" (click)="onTableAction('addRowAbove')">
+          <span>Add row above</span>
+        </button>
+        <button class="dropdown-item" (click)="onTableAction('addRowBelow')">
+          <span>Add row below</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" (click)="onTableAction('addColumnLeft')">
+          <span>Add column left</span>
+        </button>
+        <button class="dropdown-item" (click)="onTableAction('addColumnRight')">
+          <span>Add column right</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" (click)="onTableAction('deleteRow')">
+          <span>Delete row</span>
+        </button>
+        <button class="dropdown-item" (click)="onTableAction('deleteColumn')">
+          <span>Delete column</span>
+        </button>
+      </div>
+      }
+    </div>
+
+    <!-- Alignment buttons -->
+    <button class="toolbar-button icon-only" (click)="onTableAction('alignLeft')" title="Align left">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <path d="M2 3h12v2H2V3zm0 4h8v2H2V7zm0 4h10v2H2v-2z" fill="currentColor" />
+      </svg>
+    </button>
+
+    <!-- Delete table button -->
+    <button class="toolbar-button icon-only delete-button" (click)="onDeleteTable()" title="Delete table">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <path d="M5 3V2h6v1h4v2H1V3h4zm1 3v7h4V6h2v7c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V6h2z" fill="currentColor" />
+      </svg>
+    </button>
+
+    <!-- More options / Cell options -->
+    <div class="dropdown-container">
+      <button class="toolbar-button icon-only" [class.active]="showMoreDropdown()" (click)="toggleMoreDropdown()"
+        title="Cell options">
+        <svg width="16" height="16" viewBox="0 0 16 16">
+          <circle cx="4" cy="8" r="1.5" fill="currentColor" />
+          <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+          <circle cx="12" cy="8" r="1.5" fill="currentColor" />
+        </svg>
+      </button>
+
+      @if (showMoreDropdown()) {
+      <div class="dropdown-menu cell-options-menu">
+        <button class="dropdown-item has-submenu" (click)="toggleColorPicker($event)">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path
+                d="M1 13l3.5-3.5 2 2L3 15H1v-2zm12-11.5c.4 0 .8.2 1.1.5l1.1 1.1c.6.6.6 1.5 0 2.1l-9 9-4.2-4.2 9-9c.3-.3.7-.5 1-.5z"
+                fill="currentColor" />
+            </svg>
+          </span>
+          <span class="item-label">Background color</span>
+          <div class="color-preview" [style.backgroundColor]="'#fff'"></div>
+          <svg width="12" height="12" viewBox="0 0 12 12" class="submenu-arrow">
+            <path d="M4 3l3 3-3 3" fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+
+          <!-- Color Picker Submenu -->
+          @if (showColorPicker()) {
+          <div class="color-picker-submenu" (click)="$event.stopPropagation()">
+            <div class="color-grid">
+              @for (color of cellColors; track color) {
+              <div class="color-swatch" [style.backgroundColor]="color"
+                (click)="onTableAction('setCellBackground', color)"></div>
+              }
+            </div>
+          </div>
+          }
+        </button>
+
+        <button class="dropdown-item disabled">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 2h12v12H2V2zm2 2v8h8V4H4z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="item-label">Merge cells</span>
+        </button>
+
+        <button class="dropdown-item disabled">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 2h12v12H2V2zm2 8h8v2H4v-2zM4 4h8v2H4V4z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="item-label">Split cell</span>
+        </button>
+
+        <div class="dropdown-divider"></div>
+
+        <button class="dropdown-item" (click)="onTableAction('addColumnRight')">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M11 2h3v12h-3V2zM2 2h7v12H2V2z" fill="currentColor" />
+              <path d="M12.5 6v4M11 8h3" stroke="white" stroke-width="1.5" />
+            </svg>
+          </span>
+          <span class="item-label">Add column right</span>
+          <span class="item-shortcut">^⌥→</span>
+        </button>
+
+        <button class="dropdown-item" (click)="onTableAction('addRowBelow')">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 11h12v3H2v-3zM2 2h12v7H2V2z" fill="currentColor" />
+              <path d="M6 12.5h4M8 11v3" stroke="white" stroke-width="1.5" />
+            </svg>
+          </span>
+          <span class="item-label">Add row below</span>
+          <span class="item-shortcut">^⌥↓</span>
+        </button>
+
+        <div class="dropdown-divider"></div>
+
+        <button class="dropdown-item disabled">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 2h12v12H2V2zm2 2v8h2V4H4zm4 0v8h4V4H8z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="item-label">Distribute columns</span>
+        </button>
+
+        <div class="dropdown-divider"></div>
+
+        <button class="dropdown-item">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M1 1h14v14H1V1zm2 2v10h10V3H3zm2 2h6v6H5V5z" fill="currentColor" opacity="0.2" />
+              <path d="M5 5h6v6H5V5z" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="item-label">Clear cell</span>
+          <span class="item-shortcut">⌫</span>
+        </button>
+
+        <button class="dropdown-item" (click)="onTableAction('deleteColumn')">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 2h12v12H2V2zm2 2v8h2V4H4zm4 0v8h4V4H8z" fill="currentColor" />
+              <path d="M3 8h4" stroke="white" stroke-width="2" />
+            </svg>
+          </span>
+          <span class="item-label">Delete column</span>
+        </button>
+
+        <button class="dropdown-item" (click)="onTableAction('deleteRow')">
+          <span class="item-icon">
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 2h12v12H2V2zM4 4h8v2H4V4zm0 4h8v4H4V8z" fill="currentColor" />
+              <path d="M8 9h4" stroke="white" stroke-width="2" />
+            </svg>
+          </span>
+          <span class="item-label">Delete row</span>
+        </button>
+      </div>
+      }
+    </div>
+  </div>
+</div>

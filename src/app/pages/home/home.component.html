@@ -1,0 +1,68 @@
+<div class="home">
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content">
+        <h1 class="hero-title">
+          Production Ready Modern Rich Text Editor for Angular Apps
+        </h1>
+      </div>
+    
+      <div class="demo-section">
+        <p class="section-description">Experience the editor right here. Type, format, and explore all features.</p>
+      
+        <div class="demo-editor">
+          <mist-editor-toolbar
+            [boldActive]="toolbarState().bold"
+            [italicActive]="toolbarState().italic"
+            [underlineActive]="toolbarState().underline"
+            [currentBlockType]="toolbarState().blockType"
+            [alignment]="toolbarState().alignment"
+            [textColor]="toolbarState().textColor"
+            [highlightColor]="toolbarState().highlightColor"
+            (formatCommand)="onFormatCommand($event)"
+          />
+          
+          <div class="editor-container">
+            <mist-rich-text-editor
+              [content]="demoContent()"
+              [placeholder]="'Start typing or press / for commands...'"
+              (contentChange)="onContentChange($event)"
+              (toolbarStateChange)="onToolbarStateChange($event)"
+            />
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features-section">
+    <div class="container">
+      <h2 class="section-title">Why Choose Mist Editor?</h2>
+      <p class="section-description">Built for modern Angular applications with developer experience in mind.</p>
+      
+      <div class="features-grid">
+        @for (feature of features; track feature.title) {
+          <div class="feature-card">
+            <div class="feature-icon">{{ feature.icon }}</div>
+            <h3>{{ feature.title }}</h3>
+            <p>{{ feature.description }}</p>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-content">
+        <h2>Ready to Get Started?</h2>
+        <p>Install Mist Editor and start building amazing content experiences.</p>
+        <a routerLink="/getting-started" class="btn btn-primary btn-large">Get Started Now</a>
+      </div>
+    </div>
+  </section>
+</div>
