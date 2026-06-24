@@ -2,7 +2,12 @@
   <div class="toolbar-group">
     <!-- Table options dropdown -->
     <div class="dropdown-container">
-      <button class="toolbar-button" (click)="toggleTableDropdown()" title="Table options">
+      <button
+        #tableOptionsTrigger
+        class="toolbar-button"
+        (click)="toggleTableDropdown()"
+        title="Table options"
+      >
         <svg width="16" height="16" viewBox="0 0 16 16">
           <rect x="2" y="3" width="12" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1.5" />
           <path d="M2 7h12M8 3v10" stroke="currentColor" stroke-width="1.5" />
@@ -14,7 +19,12 @@
       </button>
 
       @if (showTableDropdown()) {
-      <div class="dropdown-menu">
+      <div
+        data-dropdown="table"
+        class="dropdown-menu mist-viewport-overlay"
+        [style.top.px]="tableDropdownPosition()?.top"
+        [style.left.px]="tableDropdownPosition()?.left"
+      >
         <button class="dropdown-item" (click)="onTableAction('addRowAbove')">
           <span>Add row above</span>
         </button>
@@ -55,8 +65,13 @@
 
     <!-- More options / Cell options -->
     <div class="dropdown-container">
-      <button class="toolbar-button icon-only" [class.active]="showMoreDropdown()" (click)="toggleMoreDropdown()"
-        title="Cell options">
+      <button
+        #moreOptionsTrigger
+        class="toolbar-button icon-only"
+        [class.active]="showMoreDropdown()"
+        (click)="toggleMoreDropdown()"
+        title="Cell options"
+      >
         <svg width="16" height="16" viewBox="0 0 16 16">
           <circle cx="4" cy="8" r="1.5" fill="currentColor" />
           <circle cx="8" cy="8" r="1.5" fill="currentColor" />
@@ -65,8 +80,17 @@
       </button>
 
       @if (showMoreDropdown()) {
-      <div class="dropdown-menu cell-options-menu">
-        <button class="dropdown-item has-submenu" (click)="toggleColorPicker($event)">
+      <div
+        data-dropdown="more"
+        class="dropdown-menu cell-options-menu mist-viewport-overlay"
+        [style.top.px]="moreDropdownPosition()?.top"
+        [style.left.px]="moreDropdownPosition()?.left"
+      >
+        <button
+          #colorPickerTrigger
+          class="dropdown-item has-submenu"
+          (click)="toggleColorPicker($event)"
+        >
           <span class="item-icon">
             <svg width="16" height="16" viewBox="0 0 16 16">
               <path
@@ -82,7 +106,13 @@
 
           <!-- Color Picker Submenu -->
           @if (showColorPicker()) {
-          <div class="color-picker-submenu" (click)="$event.stopPropagation()">
+          <div
+            data-dropdown="color"
+            class="color-picker-submenu mist-viewport-overlay mist-viewport-overlay--elevated"
+            [style.top.px]="colorPickerPosition()?.top"
+            [style.left.px]="colorPickerPosition()?.left"
+            (click)="$event.stopPropagation()"
+          >
             <div class="color-grid">
               @for (color of cellColors; track color) {
               <div class="color-swatch" [style.backgroundColor]="color"

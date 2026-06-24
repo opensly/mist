@@ -1,0 +1,9 @@
+.mist-viewport-overlay {
+  position: fixed;
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.mist-viewport-overlay--elevated {
+  z-index: 10001;
+}
