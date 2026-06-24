@@ -31,18 +31,19 @@ describe('TableService', () => {
       expect(cellMatches?.length).toBe(6);
     });
 
-    it('should create table with custom id', () => {
-      const result = service.createTable(1, 1, 'my-table');
-      
-      expect(result).toContain('id="my-table"');
-      expect(sanitizationService.sanitizeAttribute).toHaveBeenCalledWith('my-table');
+    it('should create table with custom block id', () => {
+      const result = service.createTable(1, 1, 'b_mytable');
+
+      expect(result).toContain('data-mist-block="b_mytable"');
+      expect(result).toContain('id="b_mytable"');
+      expect(sanitizationService.sanitizeAttribute).toHaveBeenCalledWith('b_mytable');
     });
 
     it('should create table without id when not provided', () => {
       const result = service.createTable(1, 1);
-      
+
       expect(result).toContain('<table');
-      expect(result).not.toContain('id=');
+      expect(result).not.toContain('data-mist-block=');
     });
 
     it('should include editor-table class', () => {

@@ -16,6 +16,8 @@ import { EditorUtilsService } from '../../services/editor-utils.service';
 import { EditorFormattingService } from '../../services/editor-formatting.service';
 import { TableService } from '../../services/table.service';
 import { SanitizationService } from '../../services/sanitization.service';
+import { BlockDocumentService } from '../../services/block-document.service';
+import { BlockPatch } from '../../models/editor-block.model';
 
 export interface CommandMenuItem {
   id: string;
@@ -48,6 +50,7 @@ export class RichTextEditorComponent implements AfterViewInit {
   placeholder = input<string>('Type / to insert elements');
 
   contentChange = output<string>();
+  blockChange = output<BlockPatch>();
   toolbarStateChange = output<EditorToolbarState>();
   formatCommand = output<string>();
 
@@ -77,7 +80,8 @@ export class RichTextEditorComponent implements AfterViewInit {
     private utils: EditorUtilsService,
     private formatting: EditorFormattingService,
     private tableService: TableService,
-    private sanitization: SanitizationService
+    private sanitization: SanitizationService,
+    private blocks: BlockDocumentService
   ) {
     effect(() => {
       const incoming = this.content();
@@ -91,6 +95,7 @@ export class RichTextEditorComponent implements AfterViewInit {
       if (editor.innerHTML !== sanitizedContent) {
         editor.innerHTML = sanitizedContent;
       }
+      this.blocks.ensureAllBlockIds(editor);
       this.lastEmittedContent = sanitizedContent;
     });
   }
@@ -102,29 +107,72 @@ export class RichTextEditorComponent implements AfterViewInit {
     if (!this.content() || this.content().trim() === '') {
       if (editor.innerHTML.trim() === '' || editor.innerHTML === '<br>') {
         editor.innerHTML = '<p><br></p>';
+        this.blocks.ensureAllBlockIds(editor);
         this.lastEmittedContent = editor.innerHTML;
       }
     } else {
       const sanitizedContent = this.sanitization.sanitizeEditorContent(this.content());
       editor.innerHTML = sanitizedContent;
+      this.blocks.ensureAllBlockIds(editor);
       this.lastEmittedContent = sanitizedContent;
     }
   }
 
-  private emitContentChange(content: string): void {
-    const sanitized = this.sanitization.sanitizeEditorContent(content);
+  private publishContent(blockPatches: BlockPatch[] = []): void {
     const editor = this.editorElement?.nativeElement;
+    if (!editor) {
+      return;
+    }
 
-    if (editor && sanitized !== content) {
-      const savedSelection = this.utils.saveSelection();
-      editor.innerHTML = sanitized;
-      if (savedSelection) {
-        this.utils.restoreSelection(editor, savedSelection);
+    const assembled = this.blocks.assembleHtml(editor);
+    this.lastEmittedContent = assembled;
+
+    for (const patch of blockPatches) {
+      this.blockChange.emit(patch);
+    }
+
+    this.contentChange.emit(assembled);
+  }
+
+  private emitContentChange(options?: { fullDocument?: boolean }): void {
+    const editor = this.editorElement?.nativeElement;
+    if (!editor) {
+      return;
+    }
+
+    this.blocks.ensureAllBlockIds(editor);
+
+    if (options?.fullDocument) {
+      const raw = editor.innerHTML;
+      const sanitized = this.sanitization.sanitizeEditorContent(raw);
+      if (sanitized !== raw) {
+        const savedSelection = this.blocks.saveBlockSelection(editor);
+        editor.innerHTML = sanitized;
+        this.blocks.ensureAllBlockIds(editor);
+        this.blocks.restoreBlockSelection(editor, savedSelection);
+      }
+    } else {
+      const selection = window.getSelection();
+      const activeBlock = selection
+        ? this.blocks.getActiveRootBlock(editor, selection.anchorNode)
+        : null;
+
+      if (activeBlock) {
+        const blockId = this.blocks.ensureBlockId(activeBlock);
+        const changed = this.blocks.sanitizeBlockInPlace(editor, activeBlock, this.sanitization);
+        if (changed) {
+          const updated = this.blocks.findBlockById(editor, blockId);
+          if (updated) {
+            this.publishContent([
+              { op: 'update', id: blockId, html: updated.outerHTML },
+            ]);
+            return;
+          }
+        }
       }
     }
 
-    this.lastEmittedContent = sanitized;
-    this.contentChange.emit(sanitized);
+    this.publishContent();
   }
 
   private placeCursorAtEnd(element: HTMLElement): void {
@@ -161,6 +209,7 @@ export class RichTextEditorComponent implements AfterViewInit {
 
     let needsUpdate = false;
     let savedSelection: { markerId: string } | null = null;
+    const touchedBlocks = new Set<HTMLElement>();
 
     // 1. Wrap all naked root text nodes in a single <p>
     const rootTextNodes = Array.from(editor.childNodes).filter(
@@ -223,7 +272,9 @@ export class RichTextEditorComponent implements AfterViewInit {
             if (el.style.cssText) {
               p.style.cssText = el.style.cssText;
             }
+            this.blocks.copyBlockId(el, p);
             editor.replaceChild(p, el);
+            touchedBlocks.add(p);
             needsUpdate = true;
           }
         }
@@ -239,8 +290,39 @@ export class RichTextEditorComponent implements AfterViewInit {
     // 4. Collapse accidental one-character paragraphs created by lost cursor position
     this.mergeSingleCharParagraphs(editor);
 
-    const content = editor.innerHTML;
-    this.emitContentChange(content);
+    this.blocks.ensureAllBlockIds(editor);
+
+    const selection = window.getSelection();
+    const activeBlock = selection
+      ? this.blocks.getActiveRootBlock(editor, selection.anchorNode)
+      : null;
+    if (activeBlock) {
+      touchedBlocks.add(activeBlock);
+    }
+
+    let blockPatches: BlockPatch[] = [];
+    if (touchedBlocks.size > 0) {
+      const changed = this.blocks.sanitizeBlocksInPlace(
+        editor,
+        Array.from(touchedBlocks),
+        this.sanitization,
+      );
+      blockPatches = changed.map((block) => ({
+        op: 'update' as const,
+        id: this.blocks.ensureBlockId(block),
+        html: block.outerHTML,
+      }));
+    } else if (activeBlock) {
+      const blockId = this.blocks.ensureBlockId(activeBlock);
+      if (this.blocks.sanitizeBlockInPlace(editor, activeBlock, this.sanitization)) {
+        const updated = this.blocks.findBlockById(editor, blockId);
+        if (updated) {
+          blockPatches = [{ op: 'update', id: blockId, html: updated.outerHTML }];
+        }
+      }
+    }
+
+    this.publishContent(blockPatches);
 
     // Check for "/" command
     this.checkForSlashCommand(editor);
@@ -274,7 +356,7 @@ export class RichTextEditorComponent implements AfterViewInit {
       this.insertPlainTextAtSelection(text);
     }
 
-    this.emitContent();
+    this.emitContentChange({ fullDocument: true });
     this.updateToolbarState();
   }
 
@@ -691,7 +773,7 @@ export class RichTextEditorComponent implements AfterViewInit {
   }
 
   insertTable(): void {
-    const tableId = `table-${Date.now()}`;
+    const tableId = this.blocks.createBlockId();
     const tableHtml = this.tableService.createTable(3, 3, tableId);
     // Add spacing paragraphs around the table
     const wrapperHtml = `<p><br></p>${tableHtml}<p><br></p>`;
@@ -777,8 +859,7 @@ export class RichTextEditorComponent implements AfterViewInit {
   }
 
   emitContent(): void {
-    const content = this.editorElement.nativeElement.innerHTML;
-    this.emitContentChange(content);
+    this.emitContentChange({ fullDocument: true });
   }
 
   bold(): void { this.execCommand('bold'); }
@@ -802,7 +883,8 @@ export class RichTextEditorComponent implements AfterViewInit {
   }
 
   insertPanel(type: string): void {
-    const panelId = `panel-${Date.now()}`;
+    const panelBlockId = this.blocks.createBlockId();
+    const panelDomId = `panel-${panelBlockId.replace(/^b_/, '')}`;
     const panelConfigs: Record<string, { icon: string; title: string }> = {
       info: {
         title: 'Info Panel',
@@ -830,7 +912,7 @@ export class RichTextEditorComponent implements AfterViewInit {
     if (!config) return;
 
     const panelHtml = `
-      <div id="${panelId}" class="editor-panel ${type}-panel" contenteditable="false">
+      <div id="${panelDomId}" data-mist-block="${panelBlockId}" class="editor-panel ${type}-panel" contenteditable="false">
         <div class="panel-icon-container">${config.icon}</div>
         <div class="panel-content" contenteditable="true">
           <p class="panel-text"><br></p>
@@ -867,7 +949,7 @@ export class RichTextEditorComponent implements AfterViewInit {
     this.formatting.insertBlock(editor, panelHtml, true);
 
     setTimeout(() => {
-      const panel = editor.querySelector(`#${panelId}`) as HTMLElement;
+      const panel = editor.querySelector(`#${panelDomId}`) as HTMLElement;
       if (panel) {
         const textElement = panel.querySelector('.panel-text') as HTMLElement;
         if (textElement) {
@@ -908,6 +990,7 @@ export class RichTextEditorComponent implements AfterViewInit {
     // Create a new paragraph after the code block
     const newP = document.createElement('p');
     newP.innerHTML = '<br>';
+    this.blocks.assignNewBlockId(newP);
     
     // Insert after code block
     if (codeBlock.nextSibling) {

@@ -1,11 +1,13 @@
 import { EditorFormattingService } from './editor-formatting.service';
 import { EditorUtilsService } from './editor-utils.service';
 import { SanitizationService } from './sanitization.service';
+import { BlockDocumentService } from './block-document.service';
 
 describe('EditorFormattingService', () => {
   let service: EditorFormattingService;
   let utilsService: any;
   let sanitizationService: any;
+  let blocksService: BlockDocumentService;
   let editor: HTMLElement;
 
   beforeEach(() => {
@@ -22,8 +24,9 @@ describe('EditorFormattingService', () => {
         return property === 'color' || property === 'background-color';
       })
     };
+    blocksService = new BlockDocumentService();
 
-    service = new EditorFormattingService(utilsService, sanitizationService);
+    service = new EditorFormattingService(utilsService, sanitizationService, blocksService);
 
     editor = document.createElement('div');
     editor.contentEditable = 'true';
@@ -111,6 +114,17 @@ describe('EditorFormattingService', () => {
 
       const h2 = editor.querySelector('h2');
       expect(h2?.style.textAlign).toBe('center');
+    });
+
+    it('should preserve data-mist-block when converting blocks', () => {
+      editor.innerHTML = '<p data-mist-block="b_keep">Text</p>';
+      const p = editor.querySelector('p')!;
+      selectNode(p);
+
+      service.setBlockType(editor, 'H1');
+
+      const h1 = editor.querySelector('h1');
+      expect(h1?.getAttribute('data-mist-block')).toBe('b_keep');
     });
 
     it('should insert a new block when no parent block exists', () => {

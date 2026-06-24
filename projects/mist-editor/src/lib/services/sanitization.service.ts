@@ -1,5 +1,6 @@
 import { Injectable, InjectionToken, Optional, Inject } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
+import { MIST_BLOCK_ID_PATTERN } from '../models/editor-block.model';
 
 /**
  * Configuration interface for custom sanitization rules
@@ -38,14 +39,24 @@ export class SanitizationService {
 
   // Default allowed attributes per tag
   private readonly DEFAULT_ALLOWED_ATTRIBUTES: Record<string, string[]> = {
-    '*': ['style', 'class', 'id'],
+    '*': ['style', 'class', 'id', 'data-mist-block'],
     'img': ['src', 'alt', 'width', 'height', 'style', 'loading'],
     'a': ['href', 'target', 'rel', 'title'],
-    'table': ['id', 'class', 'style'],
+    'table': ['id', 'class', 'style', 'data-mist-block'],
+    'p': ['data-mist-block'],
+    'h1': ['data-mist-block'],
+    'h2': ['data-mist-block'],
+    'h3': ['data-mist-block'],
+    'h4': ['data-mist-block'],
+    'h5': ['data-mist-block'],
+    'h6': ['data-mist-block'],
+    'ul': ['data-mist-block'],
+    'ol': ['data-mist-block'],
+    'blockquote': ['data-mist-block'],
+    'pre': ['data-mist-block', 'contenteditable', 'class', 'style'],
     'td': ['colspan', 'rowspan', 'style'],
     'th': ['colspan', 'rowspan', 'style', 'scope'],
-    'div': ['class', 'id', 'contenteditable', 'style'],
-    'pre': ['contenteditable', 'class', 'style'],
+    'div': ['class', 'id', 'contenteditable', 'style', 'data-mist-block'],
     'code': ['class'],
     'svg': ['width', 'height', 'viewBox', 'fill', 'stroke', 'xmlns'],
     'path': ['d', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'],
@@ -147,6 +158,45 @@ export class SanitizationService {
     // Final validation
     if (this.containsDangerousPatterns(result)) {
       console.error('[Sanitization] Dangerous patterns still present after sanitization');
+      return '';
+    }
+
+    return result;
+  }
+
+  /**
+   * Sanitize a single root block element (outerHTML).
+   * Used for incremental block-level sanitization on the hot input path.
+   */
+  sanitizeBlock(outerHtml: string): string {
+    const trimmed = outerHtml?.trim();
+    if (!trimmed) {
+      return '';
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(trimmed, 'text/html');
+    const block = doc.body.firstElementChild;
+
+    if (!block || doc.body.children.length !== 1) {
+      return this.sanitizeEditorContent(trimmed);
+    }
+
+    if (this.containsDangerousPatterns(trimmed)) {
+      const stripped = this.stripDangerousPatterns(trimmed);
+      const reparsed = parser.parseFromString(stripped, 'text/html');
+      const reblock = reparsed.body.firstElementChild;
+      if (!reblock) {
+        return '';
+      }
+      this.cleanNode(reblock);
+      return reblock.outerHTML;
+    }
+
+    this.cleanNode(block);
+    const result = block.outerHTML;
+
+    if (this.containsDangerousPatterns(result)) {
       return '';
     }
 
@@ -310,6 +360,13 @@ export class SanitizationService {
     }
 
     attributesToRemove.forEach(attr => element.removeAttribute(attr));
+
+    if (element.hasAttribute('data-mist-block')) {
+      const blockId = element.getAttribute('data-mist-block') || '';
+      if (!MIST_BLOCK_ID_PATTERN.test(blockId)) {
+        element.removeAttribute('data-mist-block');
+      }
+    }
 
     // Special validation for href
     if (element.hasAttribute('href')) {

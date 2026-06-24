@@ -34,6 +34,19 @@ describe('SanitizationService', () => {
       expect(result).toContain('world');
     });
 
+    it('should preserve valid data-mist-block attributes', () => {
+      const html = '<p data-mist-block="b_abc123">Hello</p>';
+      const result = service.sanitizeEditorContent(html);
+      expect(result).toContain('data-mist-block="b_abc123"');
+    });
+
+    it('should strip invalid data-mist-block attributes', () => {
+      const html = '<p data-mist-block="invalid-id">Hello</p>';
+      const result = service.sanitizeEditorContent(html);
+      expect(result).not.toContain('data-mist-block');
+      expect(result).toContain('Hello');
+    });
+
     it('should strip script tags and event handlers', () => {
       const html = '<p onclick="alert(1)">Text</p><script>alert(1)</script>';
       const result = service.sanitizeEditorContent(html);
@@ -329,6 +342,22 @@ describe('SanitizationService', () => {
       
       expect(customService.isValidUrl('data:image/png;base64,abc123')).toBe(true);
       expect(customService.isValidUrl('data:text/html,<script>')).toBe(false);
+    });
+  });
+
+  describe('sanitizeBlock', () => {
+    it('should sanitize a single block outerHTML', () => {
+      const html = '<p onclick="alert(1)">Hello <strong>world</strong></p>';
+      const result = service.sanitizeBlock(html);
+      expect(result).toContain('<strong>');
+      expect(result).not.toContain('onclick');
+      expect(result.startsWith('<p')).toBe(true);
+    });
+
+    it('should preserve block id on sanitized block', () => {
+      const html = '<p data-mist-block="b_block1">Text</p>';
+      const result = service.sanitizeBlock(html);
+      expect(result).toContain('data-mist-block="b_block1"');
     });
   });
 

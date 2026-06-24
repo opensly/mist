@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { EditorUtilsService } from './editor-utils.service';
 import { SanitizationService } from './sanitization.service';
+import { BlockDocumentService } from './block-document.service';
 
 @Injectable({
   providedIn: 'root'
@@ -8,7 +9,8 @@ import { SanitizationService } from './sanitization.service';
 export class EditorFormattingService {
   constructor(
     private utils: EditorUtilsService,
-    private sanitization: SanitizationService
+    private sanitization: SanitizationService,
+    private blocks: BlockDocumentService
   ) { }
 
   toggleInlineFormat(editor: HTMLElement, tagName: string): void {
@@ -81,6 +83,8 @@ export class EditorFormattingService {
         newBlock.style.textAlign = blockNode.style.textAlign;
       }
 
+      this.blocks.copyBlockId(blockNode, newBlock);
+
       blockNode.parentNode?.replaceChild(newBlock, blockNode);
 
       // Restore selection to the new block
@@ -96,6 +100,7 @@ export class EditorFormattingService {
       if (range.collapsed) {
         // If selection is collapsed, just insert an empty block
         newBlock.innerHTML = '<br>';
+        this.blocks.ensureBlockId(newBlock);
         range.insertNode(newBlock);
       } else {
         // Surround selection with the new block type
@@ -385,6 +390,12 @@ export class EditorFormattingService {
 
     if (!fragment.firstChild) return;
 
+    for (const child of Array.from(fragment.children)) {
+      if (child instanceof HTMLElement && this.blocks.isRootBlock(child, editor)) {
+        this.blocks.ensureBlockId(child);
+      }
+    }
+
     // Find the closest block parent (P, H1-H6, DIV, LI)
     let parentBlock: HTMLElement | null = null;
     let node = range.startContainer as Node;
@@ -423,6 +434,8 @@ export class EditorFormattingService {
       if (newP.innerHTML.trim() === '') {
         newP.innerHTML = '<br>';
       }
+
+      this.blocks.assignNewBlockId(newP);
 
       // Insert newP after the last inserted block node
       if (lastInsertedNode) {
@@ -476,7 +489,10 @@ export class EditorFormattingService {
       } else {
         p.innerHTML = blockNode.innerHTML.replace(/<br>/g, ' ');
       }
-      
+
+      this.blocks.copyBlockId(blockNode, p);
+      this.blocks.ensureBlockId(p);
+
       blockNode.parentNode?.replaceChild(p, blockNode);
 
       // Restore selection
@@ -509,7 +525,10 @@ export class EditorFormattingService {
         
         pre.appendChild(code);
         pre.setAttribute('contenteditable', 'true');
-        
+
+        this.blocks.copyBlockId(currentBlock, pre);
+        this.blocks.ensureBlockId(pre);
+
         currentBlock.parentNode?.replaceChild(pre, currentBlock);
 
         // Set cursor at the end of the code block
@@ -523,6 +542,7 @@ export class EditorFormattingService {
         if (!pre.nextSibling || (pre.nextSibling.nodeType === Node.ELEMENT_NODE && (pre.nextSibling as HTMLElement).tagName !== 'P')) {
           const followingP = document.createElement('p');
           followingP.innerHTML = '<br>';
+          this.blocks.assignNewBlockId(followingP);
           if (pre.nextSibling) {
             editor.insertBefore(followingP, pre.nextSibling);
           } else {
@@ -536,6 +556,7 @@ export class EditorFormattingService {
         code.textContent = '\u200B'; // Zero-width space
         pre.appendChild(code);
         pre.setAttribute('contenteditable', 'true');
+        this.blocks.ensureBlockId(pre);
 
         const range = selection.getRangeAt(0);
         range.insertNode(pre);
@@ -543,6 +564,7 @@ export class EditorFormattingService {
         // Add a paragraph after for easy exit
         const followingP = document.createElement('p');
         followingP.innerHTML = '<br>';
+        this.blocks.assignNewBlockId(followingP);
         if (pre.nextSibling) {
           editor.insertBefore(followingP, pre.nextSibling);
         } else {

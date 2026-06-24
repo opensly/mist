@@ -11,6 +11,8 @@ export * from './lib/components/table-options/table-options.component';
 export * from './lib/services/editor-utils.service';
 export * from './lib/services/editor-formatting.service';
 export * from './lib/services/table.service';
+export * from './lib/services/block-document.service';
+export * from './lib/models/editor-block.model';
 export { 
   SanitizationService, 
   SANITIZATION_CONFIG 

@@ -7,13 +7,13 @@ import { SanitizationService } from './sanitization.service';
 export class TableService {
   constructor(private sanitization: SanitizationService) {}
 
-  createTable(rows: number, cols: number, id?: string): string {
-    let idAttr = '';
-    if (id) {
-      const sanitizedId = this.sanitization.sanitizeAttribute(id);
-      idAttr = `id="${sanitizedId}"`;
+  createTable(rows: number, cols: number, blockId?: string): string {
+    let blockAttr = '';
+    if (blockId) {
+      const sanitizedId = this.sanitization.sanitizeAttribute(blockId);
+      blockAttr = `data-mist-block="${sanitizedId}" id="${sanitizedId}"`;
     }
-    let html = `<table ${idAttr} class="editor-table"><tbody>`;
+    let html = `<table ${blockAttr} class="editor-table"><tbody>`;
     for (let i = 0; i < rows; i++) {
       html += '<tr>';
       for (let j = 0; j < cols; j++) {
