@@ -1,4 +1,4 @@
-import { Injectable, SecurityContext, InjectionToken, Optional, Inject } from '@angular/core';
+import { Injectable, InjectionToken, Optional, Inject } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 
 /**
@@ -117,27 +117,19 @@ export class SanitizationService {
     // Pre-check for dangerous patterns
     if (this.containsDangerousPatterns(html)) {
       console.warn('[Sanitization] Dangerous patterns detected in content');
-      // Strip dangerous patterns before processing
       html = this.stripDangerousPatterns(html);
     }
 
-    // First pass: Use Angular's sanitizer to remove obvious threats
-    const basicSanitized = this.sanitizer.sanitize(SecurityContext.HTML, html) || '';
-
-    // Check if sanitization completely removed the content
-    if (!basicSanitized || basicSanitized.trim() === '') {
-      console.warn('[Sanitization] Content was completely removed by Angular sanitizer');
-      return '';
-    }
-
-    // Second pass: Parse and validate structure
+    // Parse and validate structure with our allowlists.
+    // Do not run Angular's DomSanitizer first — it strips safe inline styles (color, background-color)
+    // that the editor applies, while our cleanNode pipeline validates each style property.
     const parser = new DOMParser();
-    const doc = parser.parseFromString(basicSanitized, 'text/html');
+    const doc = parser.parseFromString(html, 'text/html');
 
     // Check if parsing was successful
     if (!doc || !doc.body) {
       console.error('[Sanitization] DOMParser failed to parse HTML');
-      return basicSanitized;
+      return '';
     }
 
     // Check for parsing errors
@@ -367,7 +359,11 @@ export class SanitizationService {
 
     // Re-add only allowed styles
     styles.forEach(style => {
-      const [property, value] = style.split(':').map(s => s.trim());
+      const colonIndex = style.indexOf(':');
+      if (colonIndex === -1) return;
+
+      const property = style.slice(0, colonIndex).trim();
+      const value = style.slice(colonIndex + 1).trim();
       if (!property || !value) return;
 
       // Check for dangerous CSS values
@@ -417,44 +413,64 @@ export class SanitizationService {
   isValidUrl(url: string): boolean {
     if (!url) return false;
 
-    // Trim and decode to catch encoded attacks
     url = url.trim();
-    
-    // Check for dangerous patterns first
-    const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('javascript:') || 
-        lowerUrl.includes('vbscript:') ||
-        lowerUrl.includes('data:text/html')) {
+
+    if (url.startsWith('//')) {
       return false;
     }
 
-    // Custom URL validator if provided
-    if (this.config?.customUrlValidator) {
-      return this.config.customUrlValidator(url);
+    const decoded = this.decodeUrlForValidation(url);
+    const normalized = decoded.replace(/\s/g, '').toLowerCase();
+
+    if (
+      normalized.includes('javascript:') ||
+      normalized.includes('vbscript:') ||
+      normalized.includes('data:text/html')
+    ) {
+      return false;
     }
 
-    // Allow data URLs only if explicitly enabled
-    if (url.startsWith('data:')) {
+    if (this.config?.customUrlValidator) {
+      return this.config.customUrlValidator(decoded);
+    }
+
+    if (decoded.startsWith('data:')) {
       if (!this.allowDataUrls) {
         return false;
       }
-      // Only allow image data URLs
-      return url.startsWith('data:image/');
+      return decoded.startsWith('data:image/');
     }
 
     try {
-      const parsed = new URL(url, window.location.href);
+      const parsed = new URL(decoded, window.location.href);
+      const looksAbsolute = /^[a-z][a-z0-9+.-]*:/i.test(decoded);
+      const looksRelative =
+        decoded.startsWith('/') ||
+        decoded.startsWith('./') ||
+        decoded.startsWith('../') ||
+        decoded.startsWith('#');
+
+      if (!looksAbsolute && !looksRelative) {
+        return false;
+      }
+
       return this.allowedProtocols.includes(parsed.protocol);
     } catch {
-      // If URL parsing fails, check if it's a relative URL
-      return url.startsWith('/') || url.startsWith('./') || url.startsWith('../');
+      if (decoded.includes(':')) {
+        return false;
+      }
+      return (
+        decoded.startsWith('/') ||
+        decoded.startsWith('./') ||
+        decoded.startsWith('../')
+      );
     }
   }
 
   /**
-   * Validate color values
+   * Validate color values used in inline styles
    */
-  private isValidColor(color: string): boolean {
+  isValidColor(color: string): boolean {
     // Allow hex colors (3 or 6 digits)
     const hexPattern = /^#([0-9A-Fa-f]{3}){1,2}$/;
     
@@ -487,6 +503,37 @@ export class SanitizationService {
     }
 
     return namedColors.includes(color.toLowerCase());
+  }
+
+  /**
+   * Validate inline style values applied by the editor
+   */
+  isSafeStyleValue(property: string, value: string): boolean {
+    if (!value?.trim() || this.isDangerousCssValue(value)) {
+      return false;
+    }
+
+    if (property === 'color' || property === 'background-color') {
+      return this.isValidColor(value.trim());
+    }
+
+    return false;
+  }
+
+  private decodeUrlForValidation(url: string): string {
+    let decoded = url;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const next = decodeURIComponent(decoded);
+        if (next === decoded) {
+          break;
+        }
+        decoded = next;
+      } catch {
+        break;
+      }
+    }
+    return decoded;
   }
 
   /**

@@ -16,7 +16,11 @@ describe('EditorFormattingService', () => {
     sanitizationService = {
       sanitizeEditorContent: vi.fn(),
       sanitizeTrustedHtml: vi.fn(),
-      sanitizeImageUrl: vi.fn()
+      sanitizeImageUrl: vi.fn(),
+      isSafeStyleValue: vi.fn((property: string, value: string) => {
+        if (!value?.trim() || value.includes('expression(')) return false;
+        return property === 'color' || property === 'background-color';
+      })
     };
 
     service = new EditorFormattingService(utilsService, sanitizationService);
@@ -169,11 +173,11 @@ describe('EditorFormattingService', () => {
       const textNode = editor.querySelector('p')!.firstChild!;
       selectRange(textNode, 0, textNode, 5);
       
-      service.applyStyle(editor, 'color', 'red');
+      service.applyStyle(editor, 'color', '#FF0000');
       
       const span = editor.querySelector('span');
       expect(span).toBeTruthy();
-      expect(span?.style.color).toBe('red');
+      expect(span?.style.color).toBe('rgb(255, 0, 0)');
     });
 
     it('should not apply style when selection is collapsed', () => {
@@ -181,7 +185,16 @@ describe('EditorFormattingService', () => {
       const textNode = editor.querySelector('p')!.firstChild!;
       selectRange(textNode, 0, textNode, 0);
 
-      service.applyStyle(editor, 'color', 'red');
+      service.applyStyle(editor, 'color', '#FF0000');
+
+      expect(editor.querySelector('span')).toBeFalsy();
+    });
+    it('should not apply unsafe color values', () => {
+      editor.innerHTML = '<p>Hello World</p>';
+      const textNode = editor.querySelector('p')!.firstChild!;
+      selectRange(textNode, 0, textNode, 5);
+
+      service.applyStyle(editor, 'color', 'expression(alert(1))');
 
       expect(editor.querySelector('span')).toBeFalsy();
     });
@@ -268,7 +281,7 @@ describe('EditorFormattingService', () => {
       const panelHtml = '<div class="editor-panel">Panel</div>';
       sanitizationService.sanitizeTrustedHtml.mockReturnValue(panelHtml);
 
-      service.insertBlock(editor, panelHtml);
+      service.insertBlock(editor, panelHtml, true);
 
       expect(sanitizationService.sanitizeTrustedHtml).toHaveBeenCalledWith(panelHtml);
 
@@ -290,6 +303,22 @@ describe('EditorFormattingService', () => {
       await flushPendingTimers();
     });
 
+    it('should not use trusted sanitization for table-like user content by default', async () => {
+      editor.innerHTML = '<p>Text</p>';
+      const p = editor.querySelector('p')!;
+      selectNode(p);
+
+      const maliciousTable = '<table onclick="alert(1)"><tr><td>x</td></tr></table>';
+      sanitizationService.sanitizeEditorContent.mockReturnValue('<table><tr><td>x</td></tr></table>');
+
+      service.insertBlock(editor, maliciousTable);
+
+      expect(sanitizationService.sanitizeEditorContent).toHaveBeenCalledWith(maliciousTable);
+      expect(sanitizationService.sanitizeTrustedHtml).not.toHaveBeenCalled();
+
+      await flushPendingTimers();
+    });
+
     it('should split a paragraph when inserting a block inside it', async () => {
       editor.innerHTML = '<p>Before middle after</p>';
       const textNode = editor.querySelector('p')!.firstChild!;
@@ -298,7 +327,7 @@ describe('EditorFormattingService', () => {
       const blockHtml = '<div class="editor-panel">Panel</div>';
       sanitizationService.sanitizeTrustedHtml.mockReturnValue(blockHtml);
 
-      service.insertBlock(editor, blockHtml);
+      service.insertBlock(editor, blockHtml, true);
 
       expect(editor.querySelector('.editor-panel')).toBeTruthy();
       expect(editor.querySelectorAll('p').length).toBe(2);
@@ -314,7 +343,7 @@ describe('EditorFormattingService', () => {
       const tableHtml = '<table><tr><td>Cell</td></tr></table>';
       sanitizationService.sanitizeTrustedHtml.mockReturnValue(tableHtml);
 
-      service.insertBlock(editor, tableHtml);
+      service.insertBlock(editor, tableHtml, true);
 
       expect(sanitizationService.sanitizeTrustedHtml).toHaveBeenCalledWith(tableHtml);
       expect(editor.querySelector('table')).toBeTruthy();
@@ -332,6 +361,7 @@ describe('EditorFormattingService', () => {
 
       service.insertBlock(editor, blockHtml);
 
+      expect(sanitizationService.sanitizeEditorContent).toHaveBeenCalledWith(blockHtml);
       expect(editor.querySelector('div')).toBeTruthy();
 
       await flushPendingTimers();

@@ -11,9 +11,11 @@ This repository is an Angular workspace with two parts:
 
 ```bash
 npm install
-npm start          # marketing site at http://localhost:4200
-ng build mist-editor   # build the library to dist/mist-editor
+npm start          # marketing site — compiles library from projects/mist-editor/src (no pre-build)
+ng build mist-editor   # only needed to publish dist/mist-editor to npm
 ```
+
+> **Dev note:** The homepage resolves `mist-editor` from library **source** via `tsconfig` paths, not `dist/`. You do **not** need `ng build mist-editor` to test changes locally. **Restart `ng serve`** (stop and run `npm start` again) after pulling or editing library code so the dev server picks up changes.
 
 ## Library
 
@@ -43,8 +45,8 @@ mist/
 ## Development
 
 ```bash
-ng serve                    # Run marketing site
-ng build mist-editor        # Build library package
+ng serve                    # Run marketing site (resolves mist-editor from projects/mist-editor/src)
+ng build mist-editor        # Build library package for publishing
 ng test mist-editor         # Run library unit tests
 ```
 

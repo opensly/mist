@@ -69,7 +69,26 @@ describe('SanitizationService', () => {
         '<p style="color: #ff0000; background-color: rgb(0, 128, 0)">Styled</p>';
       const result = service.sanitizeEditorContent(html);
       expect(result).toContain('color');
+      expect(result).toContain('rgb(0, 128, 0)');
       expect(result).not.toContain('expression(');
+    });
+
+    it('should preserve rgb text and highlight colors on spans', () => {
+      const html =
+        '<p>Hello <span style="color: rgb(23, 43, 77); background-color: rgb(234, 230, 255);">world</span></p>';
+      const result = service.sanitizeEditorContent(html);
+      expect(result).toContain('color: rgb(23, 43, 77)');
+      expect(result).toContain('background-color: rgb(234, 230, 255)');
+    });
+
+    it('should preserve editor text and highlight colors through the full sanitize pipeline', () => {
+      const html =
+        '<p>Hello <span style="color: #172B4D; background-color: #EAE6FF;">world</span></p>';
+      const result = service.sanitizeEditorContent(html);
+
+      expect(result).toContain('color');
+      expect(result).toMatch(/#172B4D|rgb\(23,\s*43,\s*77\)/i);
+      expect(result).toMatch(/#EAE6FF|rgb\(234,\s*230,\s*255\)/i);
     });
 
     it('should reject disallowed style properties and dangerous values', () => {
@@ -86,17 +105,16 @@ describe('SanitizationService', () => {
       expect(result).not.toContain('target="evil"');
     });
 
-    it('should return empty when Angular sanitizer removes all content', () => {
-      mockDomSanitizer.sanitize.mockReturnValueOnce('   ');
-      expect(service.sanitizeEditorContent('<p>removed</p>')).toBe('');
-    });
-
-    it('should strip dangerous patterns detected after cleaning', () => {
+    it('should return empty when dangerous patterns remain after cleaning', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      mockDomSanitizer.sanitize.mockReturnValueOnce('<p>javascript:alert(1)</p>');
+      const containsSpy = vi
+        .spyOn(service as unknown as { containsDangerousPatterns: (content: string) => boolean }, 'containsDangerousPatterns')
+        .mockReturnValueOnce(false)
+        .mockReturnValueOnce(true);
 
       expect(service.sanitizeEditorContent('<p>safe</p>')).toBe('');
 
+      containsSpy.mockRestore();
       errorSpy.mockRestore();
     });
 
@@ -175,6 +193,30 @@ describe('SanitizationService', () => {
     it('should reject unsupported protocols', () => {
       expect(service.isValidUrl('ftp://example.com/file')).toBe(false);
     });
+
+    it('should reject protocol-relative URLs', () => {
+      expect(service.isValidUrl('//evil.example/phish')).toBe(false);
+    });
+
+    it('should reject percent-encoded javascript URLs', () => {
+      expect(service.isValidUrl('java%73cript:alert(1)')).toBe(false);
+    });
+
+    it('should reject scheme-like relative URLs without a slash prefix', () => {
+      expect(service.isValidUrl('alert(1)')).toBe(false);
+    });
+  });
+
+  describe('isSafeStyleValue', () => {
+    it('should allow valid hex colors', () => {
+      expect(service.isSafeStyleValue('color', '#FF0000')).toBe(true);
+      expect(service.isSafeStyleValue('background-color', '#00ff00')).toBe(true);
+    });
+
+    it('should reject dangerous CSS values', () => {
+      expect(service.isSafeStyleValue('color', 'expression(alert(1))')).toBe(false);
+      expect(service.isSafeStyleValue('background-color', 'url(javascript:alert(1))')).toBe(false);
+    });
   });
 
   describe('sanitizeEditorContent edge cases', () => {
@@ -199,15 +241,15 @@ describe('SanitizationService', () => {
       expect(result).not.toContain('javascript:');
     });
 
-    it('should fall back to basic sanitized HTML when body parsing fails', () => {
-      const warnSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('should return empty when DOMParser body is missing', () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const parseFromString = DOMParser.prototype.parseFromString;
       DOMParser.prototype.parseFromString = vi.fn(() => ({ body: null }) as unknown as Document);
 
-      expect(service.sanitizeEditorContent('<p>Fallback</p>')).toBe('<p>Fallback</p>');
+      expect(service.sanitizeEditorContent('<p>Fallback</p>')).toBe('');
 
       DOMParser.prototype.parseFromString = parseFromString;
-      warnSpy.mockRestore();
+      errorSpy.mockRestore();
     });
 
     it('should return empty string when HTML parser reports an error', () => {

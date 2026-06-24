@@ -12,7 +12,7 @@
     "isolatedModules": true,
     "experimentalDecorators": true,
     "paths": {
-      "mist-editor": ["./dist/mist-editor"],
+      "mist-editor": ["./projects/mist-editor/src/public-api.ts"]
     },
     "importHelpers": true,
     "target": "ES2022",

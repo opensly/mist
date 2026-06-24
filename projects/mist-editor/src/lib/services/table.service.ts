@@ -84,6 +84,8 @@ export class TableService {
   }
 
   setCellBackground(table: HTMLTableElement, color: string): void {
+    if (!this.sanitization.isValidColor(color)) return;
+
     const selection = window.getSelection();
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);

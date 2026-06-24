@@ -5,6 +5,7 @@
     contenteditable="true"
     [attr.data-placeholder]="placeholder()"
     (input)="onInput($event)"
+    (paste)="onPaste($event)"
     (keydown)="onKeyDown($event)"
   ></div>
 

@@ -15,19 +15,19 @@
   <div class="toolbar-divider"></div>
 
   <div class="toolbar-group">
-    <button class="toolbar-button" [class.active]="boldActive()" (click)="onFormat('bold')" title="Bold (Ctrl+B)">
+    <button class="toolbar-button" [class.active]="boldActive()" (click)="onFormat('bold')" (mousedown)="$event.preventDefault()" title="Bold (Ctrl+B)">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M4 2h4.5a2.8 2.8 0 0 1 0 5.6H4V2zm0 5.6h5a3.2 3.2 0 0 1 0 6.4H4V7.6z"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <button class="toolbar-button" [class.active]="italicActive()" (click)="onFormat('italic')" title="Italic (Ctrl+I)">
+    <button class="toolbar-button" [class.active]="italicActive()" (click)="onFormat('italic')" (mousedown)="$event.preventDefault()" title="Italic (Ctrl+I)">
       <svg width="16" height="16" viewBox="0 0 16 16">
         <path d="M8 2h6v2h-2l-4 8h2v2H4v-2h2l4-8H8V2z" fill="currentColor" />
       </svg>
     </button>
     <button class="toolbar-button" [class.active]="underlineActive()" (click)="onFormat('underline')"
-      title="Underline (Ctrl+U)">
+      (mousedown)="$event.preventDefault()" title="Underline (Ctrl+U)">
       <svg width="16" height="16" viewBox="0 0 16 16">
         <path d="M4 2v6c0 2.2 1.8 4 4 4s4-1.8 4-4V2h-2v6c0 1.1-.9 2-2 2s-2-.9-2-2V2H4zm0 12h8v2H4v-2z"
           fill="currentColor" />

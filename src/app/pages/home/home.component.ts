@@ -98,7 +98,7 @@ export class HomeComponent {
       return;
     }
 
-    const [prefix, value] = command.includes(':') ? command.split(':') : [command, ''];
+    const [prefix, value] = command.includes(':') ? command.split(':', 2) : [command, ''];
 
     if (prefix === 'textColor' && value) {
       this.editor.setTextColor(value);

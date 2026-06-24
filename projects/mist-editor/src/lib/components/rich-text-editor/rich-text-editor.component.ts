@@ -112,8 +112,19 @@ export class RichTextEditorComponent implements AfterViewInit {
   }
 
   private emitContentChange(content: string): void {
-    this.lastEmittedContent = content;
-    this.contentChange.emit(content);
+    const sanitized = this.sanitization.sanitizeEditorContent(content);
+    const editor = this.editorElement?.nativeElement;
+
+    if (editor && sanitized !== content) {
+      const savedSelection = this.utils.saveSelection();
+      editor.innerHTML = sanitized;
+      if (savedSelection) {
+        this.utils.restoreSelection(editor, savedSelection);
+      }
+    }
+
+    this.lastEmittedContent = sanitized;
+    this.contentChange.emit(sanitized);
   }
 
   private placeCursorAtEnd(element: HTMLElement): void {
@@ -243,6 +254,42 @@ export class RichTextEditorComponent implements AfterViewInit {
     }
 
     this.updateToolbarState();
+  }
+
+  onPaste(event: ClipboardEvent): void {
+    event.preventDefault();
+
+    const clipboard = event.clipboardData;
+    if (!clipboard) return;
+
+    const html = clipboard.getData('text/html');
+    const text = clipboard.getData('text/plain');
+
+    if (html?.trim()) {
+      const sanitized = this.sanitization.sanitizeEditorContent(html);
+      if (sanitized) {
+        this.formatting.insertModernHTML(sanitized);
+      }
+    } else if (text) {
+      this.insertPlainTextAtSelection(text);
+    }
+
+    this.emitContent();
+    this.updateToolbarState();
+  }
+
+  private insertPlainTextAtSelection(text: string): void {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    const textNode = document.createTextNode(text);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   onKeyDown(event: KeyboardEvent): void {
@@ -482,10 +529,33 @@ export class RichTextEditorComponent implements AfterViewInit {
     }
   }
 
+  private restoreLastSelection(editor: HTMLElement): void {
+    if (
+      !this.lastSelectionRange ||
+      this.lastSelectionRange.collapsed ||
+      !editor.contains(this.lastSelectionRange.startContainer)
+    ) {
+      return;
+    }
+
+    const selection = window.getSelection();
+    const needsRestore =
+      !selection ||
+      selection.rangeCount === 0 ||
+      selection.isCollapsed ||
+      !editor.contains(selection.anchorNode);
+
+    if (needsRestore) {
+      selection?.removeAllRanges();
+      selection?.addRange(this.lastSelectionRange.cloneRange());
+    }
+  }
+
   // Formatting commands (Modern implementation without execCommand)
   execCommand(command: string, value?: string): void {
     const editor = this.editorElement.nativeElement;
     editor.focus();
+    this.restoreLastSelection(editor);
 
     const blockTypeMap: Record<string, string> = {
       p: 'p',
@@ -627,7 +697,7 @@ export class RichTextEditorComponent implements AfterViewInit {
     const wrapperHtml = `<p><br></p>${tableHtml}<p><br></p>`;
 
     // Use insertBlock to ensure it splits the current paragraph
-    this.formatting.insertBlock(this.editorElement.nativeElement, wrapperHtml);
+    this.formatting.insertBlock(this.editorElement.nativeElement, wrapperHtml, true);
 
     setTimeout(() => {
       const insertedTable = this.editorElement.nativeElement.querySelector(
@@ -794,7 +864,7 @@ export class RichTextEditorComponent implements AfterViewInit {
       selection?.addRange(range);
     }
 
-    this.formatting.insertBlock(editor, panelHtml);
+    this.formatting.insertBlock(editor, panelHtml, true);
 
     setTimeout(() => {
       const panel = editor.querySelector(`#${panelId}`) as HTMLElement;
@@ -818,12 +888,18 @@ export class RichTextEditorComponent implements AfterViewInit {
   setTextColor(color: string): void { this.execCommand('foreColor', color); }
   setHighlightColor(color: string): void { this.execCommand('hiliteColor', color); }
   removeTextColor(): void {
-    this.formatting.removeStyleFromSelection(this.editorElement.nativeElement, 'color');
+    const editor = this.editorElement.nativeElement;
+    editor.focus();
+    this.restoreLastSelection(editor);
+    this.formatting.removeStyleFromSelection(editor, 'color');
     this.emitContent();
     this.updateToolbarState();
   }
   removeHighlightColor(): void {
-    this.formatting.removeStyleFromSelection(this.editorElement.nativeElement, 'background-color');
+    const editor = this.editorElement.nativeElement;
+    editor.focus();
+    this.restoreLastSelection(editor);
+    this.formatting.removeStyleFromSelection(editor, 'background-color');
     this.emitContent();
     this.updateToolbarState();
   }

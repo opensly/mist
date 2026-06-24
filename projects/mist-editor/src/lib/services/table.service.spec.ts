@@ -7,7 +7,8 @@ describe('TableService', () => {
 
   beforeEach(() => {
     sanitizationService = {
-      sanitizeAttribute: vi.fn((value: string) => value.replace(/[<>"'`=]/g, ''))
+      sanitizeAttribute: vi.fn((value: string) => value.replace(/[<>"'`=]/g, '')),
+      isValidColor: vi.fn((color: string) => /^#([0-9A-Fa-f]{3}){1,2}$/.test(color))
     };
 
     service = new TableService(sanitizationService);
@@ -247,6 +248,15 @@ describe('TableService', () => {
       service.setCellBackground(table, '#00FF00');
 
       expect(cell.style.backgroundColor).toBe('rgb(0, 255, 0)');
+    });
+
+    it('should ignore invalid cell background colors', () => {
+      const cell = table.rows[0].cells[0];
+      selectCell(cell);
+
+      service.setCellBackground(table, 'expression(alert(1))');
+
+      expect(cell.style.backgroundColor).toBe('');
     });
   });
 

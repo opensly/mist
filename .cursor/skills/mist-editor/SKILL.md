@@ -53,6 +53,7 @@ projects/mist-editor/src/lib/
 ### Formatting services
 
 - `EditorFormattingService` — inline/block format, lists, images, code blocks, HTML insertion
+- `insertBlock(editor, html, trusted?)` — pass `trusted: true` only for app-generated panels/tables
 - `EditorUtilsService` — format detection, colors, alignment, selection save/restore
 - `TableService` — table HTML generation and row/column manipulation
 
