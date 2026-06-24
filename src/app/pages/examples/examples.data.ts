@@ -72,7 +72,7 @@ ${AT}Component({
 export class FullEditorComponent {
   ${AT}ViewChild(RichTextEditorComponent) editor!: RichTextEditorComponent;
 
-  content = signal('<p>Start typing or press <strong>/</strong> for blocks</p>');
+  content = signal('<p>Start typing...</p>');
   toolbarState = signal<EditorToolbarState>({
     bold: false,
     italic: false,

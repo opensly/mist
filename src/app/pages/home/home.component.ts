@@ -14,7 +14,7 @@ export class HomeComponent {
   @ViewChild(RichTextEditorComponent) editor!: RichTextEditorComponent;
 
   demoContent = signal(
-    '<h2>Try Mist Editor</h2><p>Start typing or press <strong>/</strong> to see the command menu...</p>',
+    '<h2>Try Mist Editor</h2><p>Start typing...</p>',
   );
 
   toolbarState = signal<EditorToolbarState>({
