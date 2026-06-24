@@ -1,0 +1,53 @@
+<div class="examples">
+  <div class="container">
+    <div class="content">
+      <h1>Examples</h1>
+      <p class="lead">
+        Copy-paste patterns for integrating Mist Editor in Angular 21+ apps. Component inputs,
+        methods, and toolbar commands are documented in the
+        <a routerLink="/api">API reference</a>. See the
+        <a routerLink="/">live demo</a> for a working setup.
+      </p>
+
+      <section class="section">
+        <h2>Integration patterns</h2>
+        <p class="section-intro">
+          Mist Editor uses HTML strings as its contract: pass <code>[content]</code> in, listen to
+          <code>(contentChange)</code> for sanitized output. The toolbar is optional but must be
+          wired to editor methods when you use it.
+        </p>
+
+        @for (example of examples; track example.title; let i = $index) {
+          <article class="example">
+            <div class="example-header">
+              <span class="example-number">{{ i + 1 }}</span>
+              <div>
+                <h3>{{ example.title }}</h3>
+                <p>{{ example.description }}</p>
+              </div>
+            </div>
+            <pre><code>{{ example.code }}</code></pre>
+          </article>
+        }
+      </section>
+
+      <section class="section">
+        <h2>More documentation</h2>
+        <div class="cards">
+          <a routerLink="/getting-started" class="card">
+            <h3>Getting started</h3>
+            <p>Installation and first steps</p>
+          </a>
+          <a routerLink="/api" class="card">
+            <h3>API reference</h3>
+            <p>Components, services, types, and toolbar commands</p>
+          </a>
+          <a routerLink="/" class="card">
+            <h3>Live demo</h3>
+            <p>Try the editor in your browser</p>
+          </a>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

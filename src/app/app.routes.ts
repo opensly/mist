@@ -18,10 +18,6 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/api/api.component').then(m => m.ApiComponent)
   },
   {
-    path: 'features',
-    loadComponent: () => import('./pages/features/features.component').then(m => m.FeaturesComponent)
-  },
-  {
     path: '**',
     redirectTo: ''
   }

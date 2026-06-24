@@ -1,23 +1,29 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import {
+  API_USAGE_NOTES,
+  EDITOR_COMPONENT,
+  SERVICES,
+  TABLE_OPTIONS_COMPONENT,
+  TOOLBAR_COMMANDS,
+  TOOLBAR_COMPONENT,
+  TYPE_DEFINITIONS,
+} from './api.data';
 
 @Component({
   selector: 'app-api',
   standalone: true,
-  imports: [CommonModule],
-  template: `
-    <div class="page">
-      <div class="container">
-        <h1>API Reference</h1>
-        <p class="lead">Comprehensive API documentation coming soon...</p>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .page { padding: 4rem 0; min-height: calc(100vh - 200px); }
-    .container { max-width: 1280px; margin: 0 auto; padding: 0 1.5rem; }
-    h1 { font-size: 3rem; font-weight: 800; margin-bottom: 1rem; }
-    .lead { font-size: 1.25rem; color: #6b7280; }
-  `]
+  imports: [CommonModule, RouterLink],
+  templateUrl: './api.component.html',
+  styleUrl: './api.component.css',
 })
-export class ApiComponent {}
+export class ApiComponent {
+  readonly editorComponent = EDITOR_COMPONENT;
+  readonly toolbarComponent = TOOLBAR_COMPONENT;
+  readonly tableOptionsComponent = TABLE_OPTIONS_COMPONENT;
+  readonly toolbarCommands = TOOLBAR_COMMANDS;
+  readonly services = SERVICES;
+  readonly types = TYPE_DEFINITIONS;
+  readonly usageNotes = API_USAGE_NOTES;
+}
