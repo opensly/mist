@@ -4,16 +4,80 @@ import { Injectable, ElementRef } from '@angular/core';
   providedIn: 'root'
 })
 export class EditorUtilsService {
+  private readonly formatTagAliases: Record<string, string[]> = {
+    STRONG: ['STRONG', 'B'],
+    B: ['STRONG', 'B'],
+    EM: ['EM', 'I'],
+    I: ['EM', 'I'],
+    U: ['U'],
+    STRIKE: ['STRIKE', 'S'],
+    S: ['STRIKE', 'S'],
+    SUB: ['SUB'],
+    SUP: ['SUP'],
+    CODE: ['CODE'],
+  };
+
+  getFormatTagAliases(tagName: string): string[] {
+    return this.formatTagAliases[tagName.toUpperCase()] ?? [tagName.toUpperCase()];
+  }
+
   isFormatActive(editor: HTMLElement, tagName: string): boolean {
     const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) return false;
-
-    let nodeSelection = selection.anchorNode;
-    let node: Node | null = nodeSelection;
-    while (node && node !== editor) {
-      if (node.nodeName === tagName) return true;
-      node = node.parentNode;
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      return false;
     }
+
+    return this.isFormatActiveInRange(editor, selection.getRangeAt(0), tagName);
+  }
+
+  isFormatActiveInRange(editor: HTMLElement, range: Range, tagName: string): boolean {
+    const tagNames = this.getFormatTagAliases(tagName);
+    const textNodes = this.getTextNodesInRange(range);
+
+    if (textNodes.length === 0) {
+      return false;
+    }
+
+    return textNodes.every((textNode) =>
+      this.hasFormatAncestor(textNode, editor, tagNames),
+    );
+  }
+
+  getTextNodesInRange(range: Range): Text[] {
+    if (range.collapsed) {
+      return [];
+    }
+
+    const root = range.commonAncestorContainer;
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode: (node) =>
+          range.intersectsNode(node) && (node.textContent?.length ?? 0) > 0
+            ? NodeFilter.FILTER_ACCEPT
+            : NodeFilter.FILTER_REJECT,
+      },
+    );
+
+    const textNodes: Text[] = [];
+    while (walker.nextNode()) {
+      textNodes.push(walker.currentNode as Text);
+    }
+
+    return textNodes;
+  }
+
+  hasFormatAncestor(node: Node, editor: HTMLElement, tagNames: string[]): boolean {
+    let current: Node | null = node.parentNode;
+
+    while (current && current !== editor) {
+      if (current instanceof HTMLElement && tagNames.includes(current.nodeName)) {
+        return true;
+      }
+      current = current.parentNode;
+    }
+
     return false;
   }
 

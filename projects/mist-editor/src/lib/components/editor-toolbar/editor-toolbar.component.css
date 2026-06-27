@@ -56,13 +56,10 @@
   color: var(--color-text-primary);
 }
 
-.toolbar-button:active {
-  background-color: var(--color-background-tertiary);
-}
-
+.toolbar-button:active,
 .toolbar-button.active {
-  background-color: var(--color-primary);
-  color: white;
+  color: #0052cc;
+  background-color: #ebf2ff;
 }
 
 .toolbar-divider {
@@ -291,15 +288,9 @@
   color: #6b778c;
 }
 
-.dropdown-trigger {
-  width: 24px !important;
-  color: #0052cc;
-  background-color: #ebf2ff;
-}
-
-.dropdown-trigger:hover {
+/* .dropdown-trigger:hover {
   background-color: #deebff;
-}
+} */
 
 .dropdown-container {
   position: relative;

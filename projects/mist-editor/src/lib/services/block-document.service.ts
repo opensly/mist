@@ -4,6 +4,9 @@ import {
   MIST_BLOCK_ATTR,
   MIST_BLOCK_ID_PATTERN,
   BlockSelection,
+  BlockSnapshot,
+  BlockPatch,
+  BlockTextAnchor,
   MistBlockType,
 } from '../models/editor-block.model';
 
@@ -136,6 +139,140 @@ export class BlockDocumentService {
   assembleHtml(editor: HTMLElement): string {
     this.ensureAllBlockIds(editor);
     return editor.innerHTML;
+  }
+
+  captureSnapshot(editor: HTMLElement): BlockSnapshot {
+    this.ensureAllBlockIds(editor);
+    const order: string[] = [];
+    const blocks = new Map<string, string>();
+
+    for (const block of this.getRootBlocks(editor)) {
+      const id = this.ensureBlockId(block);
+      order.push(id);
+      blocks.set(id, block.outerHTML);
+    }
+
+    return { order, blocks };
+  }
+
+  diffSnapshots(previous: BlockSnapshot | null, current: BlockSnapshot): BlockPatch[] {
+    if (!previous) {
+      return current.order.map((id, index) => ({
+        op: 'insert' as const,
+        id,
+        html: current.blocks.get(id),
+        afterId: index > 0 ? current.order[index - 1] : undefined,
+      }));
+    }
+
+    const patches: BlockPatch[] = [];
+
+    for (const id of previous.order) {
+      if (!current.blocks.has(id)) {
+        patches.push({ op: 'delete', id });
+      }
+    }
+
+    for (let index = 0; index < current.order.length; index++) {
+      const id = current.order[index];
+      const html = current.blocks.get(id);
+      if (!html) {
+        continue;
+      }
+
+      if (!previous.blocks.has(id)) {
+        patches.push({
+          op: 'insert',
+          id,
+          html,
+          afterId: index > 0 ? current.order[index - 1] : undefined,
+        });
+        continue;
+      }
+
+      if (previous.blocks.get(id) !== html) {
+        patches.push({ op: 'update', id, html });
+      }
+    }
+
+    return patches;
+  }
+
+  getTextOffsetInBlock(block: HTMLElement, container: Node, offset: number): number {
+    return this.textOffsetWithinBlock(block, container, offset);
+  }
+
+  saveBlockTextRange(editor: HTMLElement): BlockTextAnchor | null {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      return null;
+    }
+
+    const range = selection.getRangeAt(0);
+    const block = this.getActiveRootBlock(editor, range.commonAncestorContainer);
+    if (!block) {
+      return null;
+    }
+
+    const blockId = block.getAttribute(MIST_BLOCK_ATTR) ?? this.ensureBlockId(block);
+    const start = this.textOffsetWithinBlock(block, range.startContainer, range.startOffset);
+    const end = this.textOffsetWithinBlock(block, range.endContainer, range.endOffset);
+
+    if (start === end) {
+      return null;
+    }
+
+    return {
+      blockId,
+      start: Math.min(start, end),
+      end: Math.max(start, end),
+    };
+  }
+
+  createTextAnchor(blockId: string, start: number, end: number): BlockTextAnchor | null {
+    if (!this.isValidBlockId(blockId) || start < 0 || end < start) {
+      return null;
+    }
+
+    return { blockId, start, end };
+  }
+
+  resolveTextAnchor(editor: HTMLElement, anchor: BlockTextAnchor): Range | null {
+    if (!this.isValidBlockId(anchor.blockId) || anchor.end < anchor.start) {
+      return null;
+    }
+
+    const block = this.findBlockById(editor, anchor.blockId);
+    if (!block) {
+      return null;
+    }
+
+    const startRange = this.rangeAtTextOffset(block, anchor.start);
+    const endRange = this.rangeAtTextOffset(block, anchor.end);
+    if (!startRange || !endRange) {
+      return null;
+    }
+
+    const range = document.createRange();
+    range.setStart(startRange.startContainer, startRange.startOffset);
+    range.setEnd(endRange.startContainer, endRange.startOffset);
+    return range;
+  }
+
+  applyTextAnchor(editor: HTMLElement, anchor: BlockTextAnchor): boolean {
+    const range = this.resolveTextAnchor(editor, anchor);
+    if (!range) {
+      return false;
+    }
+
+    const selection = window.getSelection();
+    if (!selection) {
+      return false;
+    }
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return true;
   }
 
   saveBlockSelection(editor: HTMLElement): BlockSelection | null {

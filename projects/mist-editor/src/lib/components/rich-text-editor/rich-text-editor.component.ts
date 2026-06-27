@@ -7,6 +7,7 @@ import {
   ElementRef,
   ViewChild,
   AfterViewInit,
+  OnDestroy,
   HostListener,
   ViewEncapsulation,
 } from '@angular/core';
@@ -17,6 +18,7 @@ import { EditorFormattingService } from '../../services/editor-formatting.servic
 import { TableService } from '../../services/table.service';
 import { SanitizationService } from '../../services/sanitization.service';
 import { BlockDocumentService } from '../../services/block-document.service';
+import { BlockChangeService } from '../../services/block-change.service';
 import { BlockPatch } from '../../models/editor-block.model';
 
 export interface CommandMenuItem {
@@ -43,11 +45,13 @@ export interface EditorToolbarState {
   styleUrl: './rich-text-editor.component.css',
   encapsulation: ViewEncapsulation.None,
 })
-export class RichTextEditorComponent implements AfterViewInit {
+export class RichTextEditorComponent implements AfterViewInit, OnDestroy {
   @ViewChild('editor') editorElement!: ElementRef<HTMLDivElement>;
 
   content = input<string>('');
   placeholder = input<string>('Type / to insert elements');
+  /** Debounce interval (ms) for blockChange update patches. Insert/delete emit immediately. */
+  blockChangeDebounceMs = input<number>(150);
 
   contentChange = output<string>();
   blockChange = output<BlockPatch>();
@@ -81,7 +85,8 @@ export class RichTextEditorComponent implements AfterViewInit {
     private formatting: EditorFormattingService,
     private tableService: TableService,
     private sanitization: SanitizationService,
-    private blocks: BlockDocumentService
+    private blocks: BlockDocumentService,
+    private blockChanges: BlockChangeService
   ) {
     effect(() => {
       const incoming = this.content();
@@ -96,8 +101,19 @@ export class RichTextEditorComponent implements AfterViewInit {
         editor.innerHTML = sanitizedContent;
       }
       this.blocks.ensureAllBlockIds(editor);
+      this.blockChanges.reset(editor);
       this.lastEmittedContent = sanitizedContent;
     });
+  }
+
+  ngOnDestroy(): void {
+    const editor = this.editorElement?.nativeElement;
+    if (!editor) {
+      return;
+    }
+
+    this.blockChanges.flush(editor, (patch) => this.blockChange.emit(patch));
+    this.blockChanges.reset(editor);
   }
 
   ngAfterViewInit(): void {
@@ -108,17 +124,28 @@ export class RichTextEditorComponent implements AfterViewInit {
       if (editor.innerHTML.trim() === '' || editor.innerHTML === '<br>') {
         editor.innerHTML = '<p><br></p>';
         this.blocks.ensureAllBlockIds(editor);
+        this.blockChanges.reset(editor);
         this.lastEmittedContent = editor.innerHTML;
       }
     } else {
       const sanitizedContent = this.sanitization.sanitizeEditorContent(this.content());
       editor.innerHTML = sanitizedContent;
       this.blocks.ensureAllBlockIds(editor);
+      this.blockChanges.reset(editor);
       this.lastEmittedContent = sanitizedContent;
     }
   }
 
-  private publishContent(blockPatches: BlockPatch[] = []): void {
+  private syncBlockChanges(editor: HTMLDivElement): void {
+    this.blockChanges.sync(
+      editor,
+      this.blocks,
+      (patch) => this.blockChange.emit(patch),
+      this.blockChangeDebounceMs(),
+    );
+  }
+
+  private publishContent(options?: { syncBlocks?: boolean }): void {
     const editor = this.editorElement?.nativeElement;
     if (!editor) {
       return;
@@ -127,8 +154,8 @@ export class RichTextEditorComponent implements AfterViewInit {
     const assembled = this.blocks.assembleHtml(editor);
     this.lastEmittedContent = assembled;
 
-    for (const patch of blockPatches) {
-      this.blockChange.emit(patch);
+    if (options?.syncBlocks !== false) {
+      this.syncBlockChanges(editor);
     }
 
     this.contentChange.emit(assembled);
@@ -158,17 +185,7 @@ export class RichTextEditorComponent implements AfterViewInit {
         : null;
 
       if (activeBlock) {
-        const blockId = this.blocks.ensureBlockId(activeBlock);
-        const changed = this.blocks.sanitizeBlockInPlace(editor, activeBlock, this.sanitization);
-        if (changed) {
-          const updated = this.blocks.findBlockById(editor, blockId);
-          if (updated) {
-            this.publishContent([
-              { op: 'update', id: blockId, html: updated.outerHTML },
-            ]);
-            return;
-          }
-        }
+        this.blocks.sanitizeBlockInPlace(editor, activeBlock, this.sanitization);
       }
     }
 
@@ -300,29 +317,17 @@ export class RichTextEditorComponent implements AfterViewInit {
       touchedBlocks.add(activeBlock);
     }
 
-    let blockPatches: BlockPatch[] = [];
     if (touchedBlocks.size > 0) {
-      const changed = this.blocks.sanitizeBlocksInPlace(
+      this.blocks.sanitizeBlocksInPlace(
         editor,
         Array.from(touchedBlocks),
         this.sanitization,
       );
-      blockPatches = changed.map((block) => ({
-        op: 'update' as const,
-        id: this.blocks.ensureBlockId(block),
-        html: block.outerHTML,
-      }));
     } else if (activeBlock) {
-      const blockId = this.blocks.ensureBlockId(activeBlock);
-      if (this.blocks.sanitizeBlockInPlace(editor, activeBlock, this.sanitization)) {
-        const updated = this.blocks.findBlockById(editor, blockId);
-        if (updated) {
-          blockPatches = [{ op: 'update', id: blockId, html: updated.outerHTML }];
-        }
-      }
+      this.blocks.sanitizeBlockInPlace(editor, activeBlock, this.sanitization);
     }
 
-    this.publishContent(blockPatches);
+    this.publishContent();
 
     // Check for "/" command
     this.checkForSlashCommand(editor);

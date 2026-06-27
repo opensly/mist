@@ -12,6 +12,7 @@ export * from './lib/services/editor-utils.service';
 export * from './lib/services/editor-formatting.service';
 export * from './lib/services/table.service';
 export * from './lib/services/block-document.service';
+export * from './lib/services/block-change.service';
 export * from './lib/services/viewport-overlay.service';
 export * from './lib/models/editor-block.model';
 export * from './lib/models/overlay-position.model';

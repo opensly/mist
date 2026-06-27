@@ -19,10 +19,10 @@ export class EditorFormattingService {
 
     const range = selection.getRangeAt(0);
 
-    if (this.utils.isFormatActive(editor, tagName)) {
-      this.unwrapFormat(editor, tagName);
+    if (this.utils.isFormatActiveInRange(editor, range, tagName)) {
+      this.unwrapFormatInRange(editor, range, tagName);
     } else {
-      const element = document.createElement(tagName);
+      const element = document.createElement(this.normalizeFormatTag(tagName));
       try {
         range.surroundContents(element);
       } catch (e) {
@@ -30,31 +30,104 @@ export class EditorFormattingService {
         element.appendChild(fragment);
         range.insertNode(element);
       }
+      this.selectElementContents(element);
     }
   }
 
+  private normalizeFormatTag(tagName: string): string {
+    const normalized = tagName.toUpperCase();
+    if (normalized === 'B') return 'strong';
+    if (normalized === 'I') return 'em';
+    if (normalized === 'S') return 'strike';
+    return normalized.toLowerCase();
+  }
+
+  private unwrapFormatInRange(editor: HTMLElement, range: Range, tagName: string): void {
+    const tagNames = this.utils.getFormatTagAliases(tagName);
+    const savedRange = range.cloneRange();
+    const toUnwrap = new Set<HTMLElement>();
+
+    for (const textNode of this.utils.getTextNodesInRange(range)) {
+      let node: Node | null = textNode.parentNode;
+      while (node && node !== editor) {
+        if (node instanceof HTMLElement && tagNames.includes(node.nodeName)) {
+          toUnwrap.add(node);
+        }
+        node = node.parentNode;
+      }
+    }
+
+    const sorted = [...toUnwrap].sort(
+      (a, b) => this.getNodeDepth(b) - this.getNodeDepth(a),
+    );
+
+    for (const element of sorted) {
+      const parent = element.parentNode;
+      if (!parent) {
+        continue;
+      }
+      while (element.firstChild) {
+        parent.insertBefore(element.firstChild, element);
+      }
+      parent.removeChild(element);
+    }
+
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+
+    try {
+      selection.removeAllRanges();
+      selection.addRange(savedRange);
+    } catch {
+      this.selectFragmentContents(
+        savedRange.cloneContents(),
+      );
+    }
+  }
+
+  private getNodeDepth(node: Node): number {
+    let depth = 0;
+    let current: Node | null = node;
+    while (current?.parentNode) {
+      depth++;
+      current = current.parentNode;
+    }
+    return depth;
+  }
+
+  private selectElementContents(element: HTMLElement): void {
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  private selectFragmentContents(fragment: DocumentFragment): void {
+    const selection = window.getSelection();
+    if (!selection || !fragment.firstChild) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.setStartBefore(fragment.firstChild);
+    range.setEndAfter(fragment.lastChild ?? fragment.firstChild);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  /** @deprecated Use unwrapFormatInRange via toggleInlineFormat */
   unwrapFormat(editor: HTMLElement, tagName: string): void {
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
-    let node = selection.anchorNode;
-    let formatNode: HTMLElement | null = null;
-
-    while (node && node !== editor) {
-      if (node.nodeName === tagName) {
-        formatNode = node as HTMLElement;
-        break;
-      }
-      node = node.parentNode;
-    }
-
-    if (formatNode && formatNode.parentNode) {
-      const parent = formatNode.parentNode;
-      while (formatNode.firstChild) {
-        parent.insertBefore(formatNode.firstChild, formatNode);
-      }
-      parent.removeChild(formatNode);
-    }
+    this.unwrapFormatInRange(editor, selection.getRangeAt(0), tagName);
   }
 
   setBlockType(editor: HTMLElement, tagName: string): void {
@@ -271,15 +344,24 @@ export class EditorFormattingService {
       if (listNode.nodeName === listType) {
         const p = document.createElement('p');
         p.innerHTML = listItemNode.innerHTML;
+        this.blocks.copyBlockId(listNode, p);
+        this.blocks.ensureBlockId(p);
         listNode.parentNode?.insertBefore(p, listNode.nextSibling);
         listItemNode.remove();
         if (listNode.childNodes.length === 0) {
           listNode.remove();
         }
+        this.placeCursorInElement(p);
       } else {
         const newList = document.createElement(listType);
         newList.innerHTML = listNode.innerHTML;
+        this.blocks.copyBlockId(listNode, newList);
+        this.blocks.ensureBlockId(newList);
         listNode.parentNode?.replaceChild(newList, listNode);
+        const li = newList.querySelector('li');
+        if (li) {
+          this.placeCursorInElement(li);
+        }
       }
     } else {
       const block = this.utils.findParentBlock(editor, selection.anchorNode);
@@ -288,9 +370,25 @@ export class EditorFormattingService {
         const li = document.createElement('li');
         li.innerHTML = block.innerHTML;
         list.appendChild(li);
+        this.blocks.copyBlockId(block, list);
+        this.blocks.ensureBlockId(list);
         block.parentNode?.replaceChild(list, block);
+        this.placeCursorInElement(li);
       }
     }
+  }
+
+  private placeCursorInElement(element: HTMLElement, atEnd = true): void {
+    const selection = window.getSelection();
+    if (!selection) {
+      return;
+    }
+
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(!atEnd);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 
   clearModernFormatting(): void {

@@ -32,6 +32,32 @@ describe('EditorUtilsService', () => {
       expect(service.isFormatActive(editor, 'STRONG')).toBe(true);
     });
 
+    it('should treat b tags as bold', () => {
+      editor.innerHTML = '<p>Hello <b>World</b></p>';
+      const bold = editor.querySelector('b');
+
+      const range = document.createRange();
+      range.selectNodeContents(bold!);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(service.isFormatActive(editor, 'STRONG')).toBe(true);
+    });
+
+    it('should return false when only part of the selection is formatted', () => {
+      editor.innerHTML = '<p>Hello <strong>World</strong></p>';
+      const p = editor.querySelector('p')!;
+
+      const range = document.createRange();
+      range.selectNodeContents(p);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+
+      expect(service.isFormatActive(editor, 'STRONG')).toBe(false);
+    });
+
     it('should return false when format is not active', () => {
       editor.innerHTML = '<p>Plain text</p>';
       const p = editor.querySelector('p');

@@ -151,4 +151,48 @@ describe('BlockDocumentService', () => {
     expect(html).toMatch(/data-mist-block="b_[^"]+"/);
     expect((html.match(/data-mist-block=/g) || []).length).toBe(2);
   });
+
+  it('should diff snapshots into insert, update, and delete patches', () => {
+    editor.innerHTML =
+      '<p data-mist-block="b_one">One</p><p data-mist-block="b_two">Two</p>';
+    const previous = service.captureSnapshot(editor);
+
+    editor.innerHTML = '<p data-mist-block="b_one">One updated</p><p data-mist-block="b_three">Three</p>';
+    const current = service.captureSnapshot(editor);
+
+    const patches = service.diffSnapshots(previous, current);
+    expect(patches).toEqual([
+      { op: 'delete', id: 'b_two' },
+      { op: 'update', id: 'b_one', html: current.blocks.get('b_one') },
+      { op: 'insert', id: 'b_three', html: current.blocks.get('b_three'), afterId: 'b_one' },
+    ]);
+  });
+
+  it('should save and resolve intra-block text anchors', () => {
+    editor.innerHTML = '<p data-mist-block="b_text">Hello world</p>';
+    const textNode = editor.querySelector('p')!.firstChild!;
+    const range = document.createRange();
+    range.setStart(textNode, 6);
+    range.setEnd(textNode, 11);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    const anchor = service.saveBlockTextRange(editor);
+    expect(anchor).toEqual({ blockId: 'b_text', start: 6, end: 11 });
+
+    selection.removeAllRanges();
+    const resolved = service.resolveTextAnchor(editor, anchor!);
+    expect(resolved?.toString()).toBe('world');
+  });
+
+  it('should create and validate text anchors', () => {
+    expect(service.createTextAnchor('b_valid', 2, 5)).toEqual({
+      blockId: 'b_valid',
+      start: 2,
+      end: 5,
+    });
+    expect(service.createTextAnchor('invalid', 2, 5)).toBeNull();
+    expect(service.createTextAnchor('b_valid', 5, 2)).toBeNull();
+  });
 });

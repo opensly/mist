@@ -11,10 +11,7 @@ describe('EditorFormattingService', () => {
   let editor: HTMLElement;
 
   beforeEach(() => {
-    utilsService = {
-      isFormatActive: vi.fn(),
-      findParentBlock: vi.fn()
-    };
+    utilsService = new EditorUtilsService();
     sanitizationService = {
       sanitizeEditorContent: vi.fn(),
       sanitizeTrustedHtml: vi.fn(),
@@ -46,7 +43,6 @@ describe('EditorFormattingService', () => {
       const textNode = editor.querySelector('p')!.firstChild!;
       
       selectRange(textNode, 0, textNode, 5);
-      utilsService.isFormatActive.mockReturnValue(false);
       
       service.toggleInlineFormat(editor, 'STRONG');
       
@@ -56,13 +52,48 @@ describe('EditorFormattingService', () => {
     it('should unwrap text when format is already active', () => {
       editor.innerHTML = '<p>Hello <strong>World</strong></p>';
       const strong = editor.querySelector('strong')!;
-      selectNodeContents(strong.firstChild!);
-      utilsService.isFormatActive.mockReturnValue(true);
+      selectNodeContents(strong);
 
       service.toggleInlineFormat(editor, 'STRONG');
 
       expect(editor.querySelector('strong')).toBeFalsy();
       expect(editor.textContent).toContain('World');
+    });
+
+    it('should toggle bold off when selection uses a b tag', () => {
+      editor.innerHTML = '<p>Hello <b>World</b></p>';
+      const bold = editor.querySelector('b')!;
+      selectNodeContents(bold);
+
+      service.toggleInlineFormat(editor, 'STRONG');
+
+      expect(editor.querySelector('b')).toBeFalsy();
+      expect(editor.querySelector('strong')).toBeFalsy();
+    });
+
+    it('should toggle bold on and off for the same selection', () => {
+      editor.innerHTML = '<p>Toggle me</p>';
+      const textNode = editor.querySelector('p')!.firstChild!;
+      selectRange(textNode, 0, textNode, 9);
+
+      service.toggleInlineFormat(editor, 'STRONG');
+      expect(editor.querySelector('strong')).toBeTruthy();
+
+      service.toggleInlineFormat(editor, 'STRONG');
+      expect(editor.querySelector('strong')).toBeFalsy();
+      expect(editor.textContent).toContain('Toggle me');
+    });
+
+    it('should toggle italic on and off for the same selection', () => {
+      editor.innerHTML = '<p>Toggle me</p>';
+      const textNode = editor.querySelector('p')!.firstChild!;
+      selectRange(textNode, 0, textNode, 9);
+
+      service.toggleInlineFormat(editor, 'EM');
+      expect(editor.querySelector('em')).toBeTruthy();
+
+      service.toggleInlineFormat(editor, 'EM');
+      expect(editor.querySelector('em')).toBeFalsy();
     });
 
     it('should handle selections spanning partial elements', () => {
@@ -73,7 +104,7 @@ describe('EditorFormattingService', () => {
       const selection = window.getSelection();
       selection?.removeAllRanges();
       selection?.addRange(range);
-      utilsService.isFormatActive.mockReturnValue(false);
+      utilsService.findParentBlock = vi.fn().mockReturnValue(editor.querySelector('p'));
 
       service.toggleInlineFormat(editor, 'EM');
 
@@ -483,7 +514,7 @@ describe('EditorFormattingService', () => {
       const p = editor.querySelector('p')!;
       selectNode(p);
       
-      utilsService.findParentBlock.mockReturnValue(p);
+      vi.spyOn(utilsService, 'findParentBlock').mockReturnValue(p);
       
       service.handleListCommand(editor, 'UL');
       
@@ -496,12 +527,39 @@ describe('EditorFormattingService', () => {
       const p = editor.querySelector('p')!;
       selectNode(p);
 
-      utilsService.findParentBlock.mockReturnValue(p);
+      vi.spyOn(utilsService, 'findParentBlock').mockReturnValue(p);
 
       service.handleListCommand(editor, 'OL');
 
       expect(editor.querySelector('ol')).toBeTruthy();
       expect(editor.querySelector('li')).toBeTruthy();
+    });
+
+    it('should keep the cursor inside the list item after creating a list', () => {
+      editor.innerHTML = '<p>First</p><p>Second item</p>';
+      const second = editor.querySelectorAll('p')[1];
+      selectNode(second);
+
+      vi.spyOn(utilsService, 'findParentBlock').mockReturnValue(second);
+
+      service.handleListCommand(editor, 'OL');
+
+      const list = editor.querySelector('ol');
+      const selection = window.getSelection();
+      expect(list).toBeTruthy();
+      expect(list?.contains(selection?.anchorNode ?? null)).toBe(true);
+    });
+
+    it('should preserve data-mist-block when converting a paragraph to a list', () => {
+      editor.innerHTML = '<p data-mist-block="b_list">Item</p>';
+      const p = editor.querySelector('p')!;
+      selectNode(p);
+
+      vi.spyOn(utilsService, 'findParentBlock').mockReturnValue(p);
+
+      service.handleListCommand(editor, 'UL');
+
+      expect(editor.querySelector('ul')?.getAttribute('data-mist-block')).toBe('b_list');
     });
 
     it('should convert an existing list to a paragraph', () => {
